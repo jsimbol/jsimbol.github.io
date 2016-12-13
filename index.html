@@ -552,9 +552,9 @@ http://www.tooplate.com/view/2081-solution
 
 <script>
 function showMailingPopUp() {
-		console.log("Hello2");
+		console.log("Hello3");
+	document.cookie = 'MCEvilPopupClosed=;path=/;expires=Thu, 01 Jan 1970 00:00:00 UTC;';
     require(["mojo/signup-forms/Loader"], function(L) { L.start({"baseUrl":"mc.us11.list-manage.com","uuid":"0b231b7e203fbf48a52286220","lid":"47c4a7fdbe"}) })
-    document.cookie = 'MCEvilPopupClosed=;path=/;expires=Thu, 01 Jan 1970 00:00:00 UTC;';
 };
 
 document.getElementById("open-popup").onclick = function() {showMailingPopUp()};
