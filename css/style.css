@@ -45,7 +45,7 @@ p
 /* start nagivation */
 .navbar-default
     {
-        background: #01bda4;
+        background: #8e3b46;
         border: none;
         box-shadow: 0px 2px 8px 0px rgba(50, 50, 50, 0.08);
         margin: 0 !important;
@@ -74,12 +74,11 @@ p
 }
 .navbar-default .navbar-toggle
     {
-        border: none;
-        padding-top: 16px;
+        border: none       padding-top: 16px;
     }
 .navbar-default .navbar-toggle .icon-bar
     {
-        background: #93ca3a;
+        background: #ffffff;
         border-color: transparent;
     }
 .navbar-default .navbar-toggle:hover,
@@ -123,7 +122,7 @@ p
   width: 100%;
 }
 .slider-caption {
-  color:white;
+  color:#000 !important;
   margin: 0;
   position: absolute;
   top: 0;
@@ -147,12 +146,12 @@ p
 }
 .flexslider .btn
 {
-    background: #93ca3a;
+    background: #8d384b;
     border-radius: 0;
     border: 2px solid transparent;
     color: #FFFFFF;
     font-weight: bold;
-    margin: 40px 0 0 0;
+    margin: 20px 0 0 0;
     -webkit-transition: all 0.4s ease-in-out;
     transition: all 0.4s ease-in-out;
     height: 50px;
@@ -202,7 +201,7 @@ p
     }
 #divider strong
     {
-        color: #93ca3a;
+        color: #8d384b;
     }
 #divider h3
     {
@@ -213,7 +212,7 @@ p
 /* start about */
 #about h3
     {
-        color: #93ca3a;
+        color: #8d384b;
         font-size: 40px;
         padding-bottom: 10px;
     }
@@ -229,7 +228,7 @@ p
     }
 #about .progress .progress-bar-danger
     {
-        background: #93ca3a;
+        background: #8d384b;
     }
 #about .text-top
     {
@@ -272,7 +271,7 @@ p
     }
 #team h3
     {
-        color: #93ca3a;
+        color: #8d384b;
         padding-bottom: 10px;
     }
 #team h4
@@ -315,7 +314,7 @@ p
     }
 #newsletter input[type="submit"]
     {
-        background: #93ca3a;
+        background: #8d384b;
         border: 2px solid transparent;
         color: #ffffff;
     }
@@ -389,7 +388,7 @@ p
   }
 #pricing .plan .btn
   {
-    background: #93ca3a;
+    background: #8d384b;
     border: none;
     border-radius: 2px;
     font-weight: bold;
@@ -514,7 +513,7 @@ p
         background-size: cover;
         background-repeat: no-repeat;
         color: #ffffff;
-        background-color:#4d4d4d;
+        background-color:#8d384b;
     }
 #contact h3
     {
@@ -523,7 +522,7 @@ p
     }
 #contact .fa
     {
-        color: #93ca3a;
+        color: #fff;
         font-size: 18px;
         padding-bottom: 14px;
     }
@@ -547,7 +546,7 @@ p
     }
 #contact input[type="submit"]:hover
     {
-        background: #93ca3a;
+        background: #8d384b;
     }
  #contact .form-control::-moz-placeholder {
   color: #666;
@@ -641,6 +640,10 @@ footer .social-icon
         width: 180px;
         height: 40px;
         padding-top: 8px;
+    }
+
+    #screenshot {
+        display:none;
     }
 }
 /* end templatemo 768 media quires */
