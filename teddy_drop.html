@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Teddy Drop 🧸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Daydream';
+  src: url('fonts/Daydream DEMO.otf') format('opentype');
+  font-weight: normal;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #fce4ec;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+}
+canvas {
+  display: block;
+  touch-action: none;
+  cursor: pointer;
+}
+#nameInputWrap {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+  pointer-events: auto;
+}
+#nameInputWrap input {
+  font-size: 17px;
+  padding: 10px 18px;
+  border-radius: 22px;
+  border: 2.5px solid #f48fb1;
+  background: rgba(255,255,255,0.95);
+  text-align: center;
+  color: #5d4037;
+  outline: none;
+  width: 210px;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  box-shadow: 0 2px 12px rgba(244,143,177,0.25);
+}
+#nameInputWrap input::placeholder { color: #f8bbd0; }
+#nameInputWrap button {
+  font-size: 16px;
+  padding: 10px 30px;
+  border-radius: 22px;
+  border: none;
+  background: #f48fb1;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  box-shadow: 0 3px 12px rgba(244,143,177,0.5);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+#nameInputWrap button:active {
+  transform: scale(0.94);
+  box-shadow: 0 1px 6px rgba(244,143,177,0.4);
+}
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="gameCanvas"></canvas>
+  <div id="nameInputWrap">
+    <input type="text" id="playerNameInput" placeholder="Your name..." maxlength="20" autocomplete="off">
+    <button id="submitScoreBtn">Submit to Leaderboard</button>
+  </div>
+</div>
+
+<!-- Supabase JS client -->
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
+
+<script>
+// ================================================================
+//  TEDDY DROP 🧸  —  Baby Shower Game
+//
+//  SETUP INSTRUCTIONS:
+//    1. Create a free project at https://supabase.com
+//    2. In the Table Editor, create a table called "scores" with:
+//         id:         int8,       primary key, identity (auto)
+//         name:       text,       not null
+//         score:      int8,       not null
+//         created_at: timestamptz, default: now()
+//    3. Go to Authentication > Policies, enable RLS on "scores"
+//    4. Add two policies on the "scores" table:
+//         - Policy name: "Allow anon insert"
+//           Target roles: anon
+//           Operation: INSERT
+//           WITH CHECK expression: true
+//         - Policy name: "Allow anon select"
+//           Target roles: anon
+//           Operation: SELECT
+//           USING expression: true
+//    5. Copy your Project URL and anon/public key into the
+//       constants below. Save the file and re-open in browser.
+// ================================================================
+
+// --- Supabase Configuration (fill these in) ---
+const SUPABASE_URL      = '';   // e.g. 'https://abcxyz.supabase.co'
+const SUPABASE_ANON_KEY = '';   // your project's anon / public key
+
+// ================================================================
+//  TUNABLE GAME CONSTANTS  —  tweak these to adjust feel
+// ================================================================
+const GRAVITY             = 0.28;   // px/frame² downward pull
+const BASE_SPIN_SPEED     = 0.038;  // radians/frame spin at level-1 multiplier
+const CATCH_ZONE_WIDTH    = 62;     // half-width (px) of horizontal catch window
+const BOUNCE_DAMPING      = 0.52;   // fraction of speed kept on miss-bounce
+const PARTICLE_COUNT      = 24;     // heart particles on successful catch
+const CATCH_ANIM_FRAMES   = 75;     // frames baby holds the happy pose
+const MISS_ANIM_FRAMES    = 80;     // frames of surprised face before next bear
+
+// Level configs — picked by current score
+// minScore: score needed to enter this tier
+// spinMult: multiplies BASE_SPIN_SPEED
+// driftAmp: sinusoidal sideways sway amplitude (px)
+// driftFreq: how fast the sway oscillates (radians/frame)
+// catchWindow: degrees either side of upright that counts as a catch
+const LEVEL_CONFIGS = [
+  { minScore:  0, spinMult: 1.0, driftAmp: 0.0, driftFreq: 0.020, catchWindow: 25 },
+  { minScore:  3, spinMult: 1.6, driftAmp: 1.2, driftFreq: 0.025, catchWindow: 25 },
+  { minScore:  6, spinMult: 2.2, driftAmp: 2.5, driftFreq: 0.030, catchWindow: 20 },
+  { minScore:  9, spinMult: 3.0, driftAmp: 3.8, driftFreq: 0.036, catchWindow: 15 },
+];
+
+// ================================================================
+//  Canvas & scaling
+// ================================================================
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const LOGI_W  = 400;   // logical canvas width
+const LOGI_H  = 700;   // logical canvas height
+
+let canvasScale = 1;
+
+const nameInputWrap = document.getElementById('nameInputWrap');
+const playerNameEl  = document.getElementById('playerNameInput');
+const submitBtn     = document.getElementById('submitScoreBtn');
+
+function resizeCanvas() {
+  const sw = window.innerWidth  / LOGI_W;
+  const sh = window.innerHeight / LOGI_H;
+  canvasScale = Math.min(sw, sh);
+  canvas.width  = LOGI_W;
+  canvas.height = LOGI_H;
+  canvas.style.width  = (LOGI_W * canvasScale) + 'px';
+  canvas.style.height = (LOGI_H * canvasScale) + 'px';
+  positionNameInput();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ================================================================
+//  Supabase client
+// ================================================================
+const SUPABASE_READY = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+let sb = null;
+
+function initSupabase() {
+  if (SUPABASE_READY && typeof supabase !== 'undefined') {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    fetchLeaderboard();
+  }
+}
+
+// ================================================================
+//  Image assets
+// ================================================================
+const ASSETS = {};
+
+function imgReady(img) {
+  return img && img.complete && img.naturalWidth > 0;
+}
+
+// Strips white/near-white pixels to transparency.
+// Works on GitHub Pages (same-origin); on file:// falls back to raw image.
+function stripWhite(img, threshold = 240) {
+  try {
+    const tmp = document.createElement('canvas');
+    tmp.width  = img.naturalWidth;
+    tmp.height = img.naturalHeight;
+    const tc = tmp.getContext('2d');
+    tc.drawImage(img, 0, 0);
+    const id = tc.getImageData(0, 0, tmp.width, tmp.height);
+    const d  = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] > threshold && d[i+1] > threshold && d[i+2] > threshold) {
+        d[i+3] = 0;
+      }
+    }
+    tc.putImageData(id, 0, 0);
+    return tmp;   // OffscreenCanvas-like — drawImage accepts it
+  } catch (_) {
+    return img;   // file:// CORS fallback: use image as-is
+  }
+}
+
+function loadAssets(onDone) {
+  const srcs = {
+    background: 'assets/background.png',
+    waiting:    'assets/waiting.png',
+    happy:      'assets/happy.png',
+    surprised:  'assets/surprised.png',
+    teddy:      'assets/teddy.png',
+    heart:      'assets/heart-Photoroom.png',
+    panel:      'assets/panel.png',
+  };
+  const keys = Object.keys(srcs);
+  let remaining = keys.length;
+
+  keys.forEach(k => {
+    const img = new Image();
+    img.onload = () => {
+      ASSETS[k] = img;   // all sprites already have transparency from Photoroom
+      if (--remaining === 0) onDone();
+    };
+    img.onerror = () => {
+      ASSETS[k] = null;
+      if (--remaining === 0) onDone();
+    };
+    img.src = srcs[k];
+  });
+}
+
+// ================================================================
+//  Color palette
+// ================================================================
+const C = {
+  bgTop:     '#fce4ec',
+  bgBot:     '#f8bbd0',
+  floor:     '#fce4ec',
+  floorLine: '#f48fb1',
+  wallDot:   'rgba(244,143,177,0.28)',
+  skin:      '#ffe0b2',
+  skinShad:  '#ffccbc',
+  hair:      '#5d4037',
+  bow:       '#f48fb1',
+  bowDark:   '#c2185b',
+  dress:     '#f8bbd9',
+  dressSh:   '#f48fb1',
+  bearBrown: '#a1887f',
+  bearDark:  '#795548',
+  bearLight: '#d7ccc8',
+  bearNose:  '#4e342e',
+  heartPink: '#f06292',
+  scoreText: '#880e4f',
+  comboText: '#ad1457',
+  white:     '#ffffff',
+  cloud:     '#ffffff',
+  sky:       '#e3f2fd',
+};
+
+// ================================================================
+//  Positions & sprite layout
+// ================================================================
+const BABY_X        = LOGI_W / 2;
+const BABY_Y        = LOGI_H - 108;   // legacy reference used for bounce deflection
+const BEAR_START_X  = LOGI_W / 2;
+const BEAR_START_Y  = 88;
+
+// Baby sprite drawn size — waiting.png is 535×744, at 113px wide → 157px tall
+const BABY_SW       = 113;
+const BABY_SH       = 157;
+const BABY_SX       = LOGI_W/2 - BABY_SW/2;
+const BABY_SY       = LOGI_H - BABY_SH - 90; // moved up onto mat
+
+// Catch zone: arms at ~42% down the waiting sprite
+const CATCH_ZONE_Y  = BABY_SY + Math.round(BABY_SH * 0.42);
+// Bear rests lower — arms/lap area of sprite
+const BEAR_CAUGHT_Y = BABY_SY + Math.round(BABY_SH * 0.78);
+
+// ================================================================
+//  Game state
+// ================================================================
+let gameState = 'start';   // 'start' | 'playing' | 'gameover'
+
+let score        = 0;
+let comboCount   = 0;
+let comboMult    = 1;
+let personalBest = parseInt(localStorage.getItem('teddyDropBest') || '0');
+
+let bear = createBear();
+let babyEmotion  = 'waiting';   // 'waiting' | 'happy' | 'surprised'
+let babyTimer    = 0;
+
+let particles    = [];
+let flashAlpha   = 0;
+let animTick     = 0;
+
+let pendingGameOver      = false;
+let pendingGameOverTimer = 0;
+
+let leaderboard        = [];
+let leaderboardLoading = false;
+let scoreSubmitted     = false;
+
+let tryAgainBtnBounds  = null;  // { x, y, w, h } in logical coords
+
+// ================================================================
+//  Level helpers
+// ================================================================
+function getLevelConfig() {
+  let cfg = LEVEL_CONFIGS[0];
+  for (const c of LEVEL_CONFIGS) {
+    if (score >= c.minScore) cfg = c;
+  }
+  return cfg;
+}
+
+function getDisplayLevel() { return score + 1; }
+
+// ================================================================
+//  Bear factory & logic
+// ================================================================
+function createBear() {
+  const cfg  = getLevelConfig();
+  const dir  = Math.random() < 0.5 ? 1 : -1;
+  return {
+    x:          BEAR_START_X,
+    y:          BEAR_START_Y,
+    vx:         0,
+    vy:         0,
+    angle:      Math.random() * Math.PI * 2,
+    spinSpeed:  BASE_SPIN_SPEED * cfg.spinMult * dir,
+    phase:      'spinning',   // spinning | falling | caught | bouncing | offscreen
+    driftPhase: Math.random() * Math.PI * 2,
+    driftAmp:   cfg.driftAmp,
+    driftFreq:  cfg.driftFreq,
+    catchChecked: false,
+  };
+}
+
+function releaseBear() {
+  if (bear.phase !== 'spinning') return;
+  bear.phase    = 'falling';
+  bear.vy       = 0.5;
+  bear.spinSpeed = 0;  // freeze rotation at the angle the player chose
+}
+
+function updateBear() {
+  if (bear.phase === 'spinning') {
+    bear.angle += bear.spinSpeed;
+    // Lateral sway while spinning — this is what the player times
+    bear.driftPhase += bear.driftFreq;
+    bear.x = BEAR_START_X + Math.sin(bear.driftPhase) * bear.driftAmp * 28;
+    return;
+  }
+
+  if (bear.phase === 'falling') {
+    // x is frozen at release position — falls straight down
+    bear.vy += GRAVITY;
+    bear.y  += bear.vy;
+
+    if (!bear.catchChecked && bear.y >= CATCH_ZONE_Y) {
+      bear.catchChecked = true;
+      evalCatch();
+    }
+    return;
+  }
+
+  if (bear.phase === 'bouncing') {
+    bear.vy    += GRAVITY;
+    bear.x    += bear.vx;
+    bear.y    += bear.vy;
+    bear.angle += bear.spinSpeed * 2.8;
+
+    if (bear.y > LOGI_H + 80 || bear.x < -80 || bear.x > LOGI_W + 80) {
+      bear.phase = 'offscreen';
+    }
+    return;
+  }
+
+  if (bear.phase === 'caught') {
+    // Bear stays put, timer counted externally
+  }
+}
+
+function evalCatch() {
+  const cfg = getLevelConfig();
+  const dx  = Math.abs(bear.x - BABY_X);
+
+  // Normalize angle to [-180, 180]
+  let deg = ((bear.angle * 180 / Math.PI) % 360 + 360) % 360;
+  if (deg > 180) deg -= 360;
+  const upright = Math.abs(deg) <= cfg.catchWindow;
+  const inZone  = dx <= CATCH_ZONE_WIDTH;
+
+  if (upright && inZone) {
+    doSuccessfulCatch();
+  } else {
+    doMiss(dx);
+  }
+}
+
+function doSuccessfulCatch() {
+  score++;
+  comboCount++;
+  comboMult = comboCount >= 4 ? 4 : comboCount >= 3 ? 3 : comboCount >= 2 ? 2 : 1;
+
+  if (score > personalBest) {
+    personalBest = score;
+    localStorage.setItem('teddyDropBest', personalBest);
+  }
+
+  bear.phase = 'caught';
+  bear.x     = BABY_X;
+  bear.y     = BEAR_CAUGHT_Y;
+  bear.angle = 0;
+
+  babyEmotion = 'happy';
+  babyTimer   = CATCH_ANIM_FRAMES;
+  // flashAlpha removed
+
+  spawnHearts(bear.x, bear.y);
+  playSuccess();
+}
+
+function doMiss(dx) {
+  bear.phase = 'bouncing';
+  bear.vy    = Math.min(-bear.vy * BOUNCE_DAMPING, -3);
+  // Deflect left or right depending on which arm was hit
+  const deflect = bear.x < BABY_X ? -1 : 1;
+  bear.vx = deflect * (2.5 + Math.random() * 2);
+
+  babyEmotion = 'surprised';
+  babyTimer   = MISS_ANIM_FRAMES;
+
+  playMiss();
+
+  pendingGameOver      = true;
+  pendingGameOverTimer = 95;
+}
+
+// ================================================================
+//  Particles
+// ================================================================
+function spawnHearts(x, y) {
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const life = 55 + Math.random() * 35;
+    particles.push({
+      x,
+      y,
+      vx:      (Math.random() - 0.5) * 3.2,
+      vy:      -1.5 - Math.random() * 3.5,
+      life,
+      maxLife: life,
+      size:    7 + Math.random() * 10,
+    });
+  }
+}
+
+function updateParticles() {
+  for (const p of particles) {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.06;
+    p.life--;
+  }
+  particles = particles.filter(p => p.life > 0);
+}
+
+// ================================================================
+//  Audio (Web Audio API)
+// ================================================================
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  return audioCtx;
+}
+
+function tone(freq, dur, type = 'sine', vol = 0.22) {
+  try {
+    const ac  = ensureAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gn  = ac.createGain();
+    osc.connect(gn);
+    gn.connect(ac.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    gn.gain.setValueAtTime(vol, ac.currentTime);
+    gn.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + dur);
+  } catch (_) {}
+}
+
+function playSuccess() {
+  // Ascending happy chord: C5 E5 G5
+  [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.28, 'sine', 0.22), i * 75));
+}
+
+function playMiss() {
+  tone(350, 0.22, 'sine', 0.18);
+  setTimeout(() => tone(250, 0.4, 'sine', 0.14), 130);
+}
+
+// ================================================================
+//  Drawing utilities
+// ================================================================
+function rrect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function heartPath(cx, cy, s) {
+  // Draws a heart centered at (cx, cy - s*0.5) with approximate size s
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.bezierCurveTo(cx,       cy - s,   cx - s*1.4, cy - s,   cx - s*1.4, cy - s*0.4);
+  ctx.bezierCurveTo(cx - s*1.4, cy + s*0.4, cx, cy + s*1.2, cx, cy + s*1.5);
+  ctx.bezierCurveTo(cx, cy + s*1.2,  cx + s*1.4, cy + s*0.4, cx + s*1.4, cy - s*0.4);
+  ctx.bezierCurveTo(cx + s*1.4, cy - s, cx, cy - s, cx, cy);
+  ctx.closePath();
+}
+
+// ================================================================
+//  Draw: Background
+// ================================================================
+function drawBackground() {
+  if (imgReady(ASSETS.background)) {
+    ctx.drawImage(ASSETS.background, 0, 0, LOGI_W, LOGI_H);
+  } else {
+    // Fallback flat fill while assets load
+    ctx.fillStyle = '#fce4ec';
+    ctx.fillRect(0, 0, LOGI_W, LOGI_H);
+  }
+}
+
+function drawWindow(x, y, w, h) {
+  // Outer frame
+  ctx.fillStyle = '#fff8f0';
+  rrect(x, y, w, h, 9);
+  ctx.fill();
+  // Sky inside
+  ctx.fillStyle = C.sky;
+  rrect(x + 4, y + 4, w - 8, h - 8, 6);
+  ctx.fill();
+  // Clouds
+  drawCloud(x + 18, y + 22, 0.46);
+  drawCloud(x + 52, y + 58, 0.36);
+  // Dividers
+  ctx.strokeStyle = '#fff8f0';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x + w/2, y + 4); ctx.lineTo(x + w/2, y + h - 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 4, y + h/2); ctx.lineTo(x + w - 4, y + h/2); ctx.stroke();
+  // Border
+  ctx.strokeStyle = '#f8bbd0';
+  ctx.lineWidth = 2.5;
+  rrect(x, y, w, h, 9);
+  ctx.stroke();
+}
+
+function drawCloud(x, y, sc) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sc, sc);
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.beginPath();
+  ctx.arc(0,  0, 18, 0, Math.PI * 2);
+  ctx.arc(24,-4, 14, 0, Math.PI * 2);
+  ctx.arc(42, 2, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSparkle(x, y, sz) {
+  ctx.fillStyle = 'rgba(255,182,193,0.45)';
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const a  = (i / 4) * Math.PI * 2;
+    const a2 = a + Math.PI / 4;
+    const pt = i === 0 ? ctx.moveTo.bind(ctx) : ctx.lineTo.bind(ctx);
+    pt(x + Math.cos(a) * sz,     y + Math.sin(a) * sz);
+    ctx.lineTo(x + Math.cos(a2) * sz * 0.35, y + Math.sin(a2) * sz * 0.35);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ================================================================
+//  Draw: Teddy Bear
+// ================================================================
+// Sprite drawn size — bear occupies roughly the centre of the 1024×1536 sheet
+const BEAR_SW = 112;
+const BEAR_SH = Math.round(BEAR_SW * 1535 / 1024); // ~168
+
+function drawBear(x, y, angle, sc = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(sc, sc);
+  const img = ASSETS.teddy;
+  if (imgReady(img)) {
+    // Sprite is centred on the bear's visual centre (~50% x, ~50% y)
+    ctx.drawImage(img, -BEAR_SW / 2, -BEAR_SH / 2, BEAR_SW, BEAR_SH);
+  }
+  ctx.restore();
+}
+
+function drawBow(x, y, sc, col, colDark) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sc, sc);
+  ctx.fillStyle = col;
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-14,-8,-18,-2,-12, 0);
+  ctx.bezierCurveTo(-18, 2,-14, 8,  0, 0);
+  ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(14,-8,18,-2, 12, 0);
+  ctx.bezierCurveTo(18, 2,14, 8,  0, 0);
+  ctx.fill();
+  // Knot
+  ctx.fillStyle = colDark;
+  ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ================================================================
+//  Draw: Baby (sprite-based)
+// ================================================================
+function drawBabyBody(emotion) {
+  const key = emotion === 'happy' ? 'happy'
+            : emotion === 'surprised' ? 'surprised'
+            : 'waiting';
+  const img = ASSETS[key];
+  if (!imgReady(img)) return;
+  // Fixed HEIGHT for all; width proportional per sprite (prevents happy from appearing wider)
+  const sh = BABY_SH;
+  const sw = Math.round(sh * img.naturalWidth / img.naturalHeight);
+  ctx.drawImage(img, LOGI_W / 2 - sw / 2, BABY_SY, sw, sh);
+}
+
+// Arms are baked into each sprite — nothing extra to draw
+function drawBabyArms(emotion) {}
+
+// ================================================================
+//  Draw: Particles
+// ================================================================
+function drawParticles() {
+  const hImg = ASSETS.heart;
+  for (const p of particles) {
+    const alpha = p.life / p.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(p.x, p.y);
+    if (imgReady(hImg)) {
+      const s = p.size * 1.4;
+      ctx.drawImage(hImg, -s / 2, -s / 2, s, s);
+    } else {
+      ctx.fillStyle = C.heartPink;
+      ctx.scale(p.size / 16, p.size / 16);
+      heartPath(0, -4, 4);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ================================================================
+//  Draw: HUD
+// ================================================================
+function outlineText(text, x, y, lw) {
+  ctx.lineJoin    = 'round';
+  ctx.lineWidth   = lw || 4;
+  ctx.strokeStyle = 'rgba(50,0,15,0.85)';
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+}
+
+function drawHUD() {
+  ctx.font         = 'bold 18px Daydream, Chewy, Georgia, sans-serif';
+  ctx.fillStyle    = '#ffffff';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  outlineText(`${score} catches`, LOGI_W/2, 28);
+}
+
+// ================================================================
+//  Draw: Flash
+// ================================================================
+function drawFlash() {
+  if (flashAlpha <= 0) return;
+  ctx.fillStyle = `rgba(255,182,193,${flashAlpha})`;
+  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
+  flashAlpha = Math.max(0, flashAlpha - 0.022);
+}
+
+// ================================================================
+//  Draw: Start Screen
+// ================================================================
+function drawStartScreen() {
+  drawBackground();
+
+  const cx = LOGI_W / 2;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('Teddy Drop', cx, 56, 5);
+
+  // Subtitle — two lines
+  ctx.fillStyle = '#fce4ec';
+  ctx.font      = '13px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('help baby girl catch', cx, 88, 3);
+  outlineText('her teddy bear', cx, 108, 3);
+
+  // Idle spinning bear
+  const idleAngle = animTick * 0.038;
+  drawBear(cx, 220, idleAngle, 1.15);
+
+  // Baby waiting at bottom
+  drawBabyBody('waiting');
+
+  // Personal best — two lines
+  if (personalBest > 0) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font      = '12px Daydream, Chewy, Georgia, sans-serif';
+    outlineText('High Score:', cx, 318, 3);
+    outlineText(`${personalBest}    Catches`, cx, 336, 3);
+  }
+
+  // Leaderboard preview
+  if (SUPABASE_READY) {
+    const lbY = personalBest > 0 ? 348 : 318;
+    if (leaderboard.length > 0) {
+      drawLeaderboardBox(44, lbY, LOGI_W - 88, 5);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.font      = '11px Daydream, Chewy, Georgia, sans-serif';
+      outlineText('Loading leaderboard…', cx, lbY + 18, 3);
+    }
+  }
+
+  // Tap-to-begin button — sits in gap between high score text and baby (y≈350–490)
+  const tapBtnY = 390;
+  ctx.fillStyle = '#f48fb1';
+  rrect(cx - 95, tapBtnY, 190, 46, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#fce4ec';
+  ctx.lineWidth   = 2.5;
+  rrect(cx - 95, tapBtnY, 190, 46, 8);
+  ctx.stroke();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Tap to Begin!', cx, tapBtnY + 23);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ================================================================
+//  Draw: Game Over Screen
+// ================================================================
+function drawGameOverScreen() {
+  drawBackground();
+
+  // Light pink tint
+  ctx.fillStyle = 'rgba(252,228,236,0.78)';
+  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
+
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const cx = LOGI_W / 2;
+
+  // Score — two lines
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('You caught', cx, 66, 5);
+  outlineText(`${score} Bear${score !== 1 ? 's' : ''}!`, cx, 92, 5);
+
+  // Personal best — two lines with extra space above
+  ctx.font = '14px Daydream, Chewy, Georgia, sans-serif';
+  if (score > 0 && score >= personalBest) {
+    ctx.fillStyle = '#ffe082';
+    outlineText('High Score:', cx, 122, 4);
+    outlineText(`${personalBest}    Catches`, cx, 142, 4);
+  } else {
+    ctx.fillStyle = '#ffffff';
+    outlineText('High Score:', cx, 122, 4);
+    outlineText(`${personalBest}    Catches`, cx, 142, 4);
+  }
+
+  // Leaderboard section
+  if (SUPABASE_READY) {
+    if (leaderboard.length > 0) {
+      const lbTop = scoreSubmitted ? 160 : 240;
+      drawLeaderboardBox(24, lbTop, LOGI_W - 48, 8);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.font      = '11px Daydream, Chewy, Georgia, sans-serif';
+      outlineText('Loading leaderboard…', cx, 168, 3);
+    }
+  }
+
+  // Try Again button
+  const btnW = 180;
+  const btnH = 46;
+  const btnX = cx - btnW / 2;
+  const btnY = LOGI_H - 90;
+  ctx.fillStyle = '#f48fb1';
+  rrect(btnX, btnY, btnW, btnH, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#fce4ec';
+  ctx.lineWidth   = 2.5;
+  rrect(btnX, btnY, btnW, btnH, 8);
+  ctx.stroke();
+  ctx.fillStyle    = C.white;
+  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Try Again?', cx, btnY + btnH / 2);
+  ctx.textBaseline = 'alphabetic';
+
+  tryAgainBtnBounds = { x: btnX, y: btnY, w: btnW, h: btnH };
+}
+
+// ================================================================
+//  Draw: Leaderboard box
+// ================================================================
+function drawLeaderboardBox(x, y, w, maxRows) {
+  const rows  = leaderboard.slice(0, maxRows);
+  const rowH  = 27;
+  const boxH  = 36 + rows.length * rowH;
+  const medals = ['1.','2.','3.'];
+
+  ctx.fillStyle = '#ffffff';
+  rrect(x, y, w, boxH, 0);
+  ctx.fill();
+  ctx.strokeStyle = '#f8bbd0';
+  ctx.lineWidth   = 1.5;
+  rrect(x, y, w, boxH, 0);
+  ctx.stroke();
+
+  ctx.fillStyle    = '#880e4f';
+  ctx.font         = 'bold 12px Daydream, Chewy, Georgia, sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Top Scores', x + w/2, y + 16);
+
+  rows.forEach((row, i) => {
+    const ry  = y + 32 + i * rowH;
+    const tag = medals[i] || `${i+1}.`;
+    ctx.fillStyle = i === 0 ? '#b8860b' : '#880e4f';
+    ctx.font      = i === 0 ? 'bold 11px Daydream, Chewy, Georgia, sans-serif' : '11px Daydream, Chewy, Georgia, sans-serif';
+
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${tag} ${row.name}`, x + 14, ry + rowH/2);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${row.score}`, x + w - 14, ry + rowH/2);
+  });
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign    = 'left';
+}
+
+// ================================================================
+//  Name Input (HTML overlay)
+// ================================================================
+
+function positionNameInput() {
+  if (!nameInputWrap) return;
+  const rect    = canvas.getBoundingClientRect();
+  const logY    = 222;
+  const screenY = rect.top + logY * canvasScale;
+  nameInputWrap.style.top       = screenY + 'px';
+  nameInputWrap.style.left      = '50%';
+  nameInputWrap.style.transform = 'translateX(-50%)';
+}
+
+function showNameInput() {
+  if (!SUPABASE_READY) return;
+  nameInputWrap.style.display = 'flex';
+  positionNameInput();
+  playerNameEl.value = '';
+  setTimeout(() => playerNameEl.focus(), 80);
+}
+
+function hideNameInput() {
+  nameInputWrap.style.display = 'none';
+}
+
+submitBtn.addEventListener('click', async () => {
+  const name = playerNameEl.value.trim() || 'Anonymous';
+  submitBtn.textContent = 'Submitting…';
+  submitBtn.disabled = true;
+  await submitScore(name, score);
+  hideNameInput();
+  scoreSubmitted = true;
+  submitBtn.textContent = 'Submit to Leaderboard';
+  submitBtn.disabled = false;
+});
+
+playerNameEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitBtn.click();
+});
+
+// ================================================================
+//  Supabase helpers
+// ================================================================
+async function submitScore(name, sc) {
+  if (!sb) return;
+  try {
+    await sb.from('scores').insert({ name, score: sc });
+    await fetchLeaderboard();
+  } catch (e) {
+    console.warn('Supabase insert error:', e);
+  }
+}
+
+async function fetchLeaderboard() {
+  if (!sb || leaderboardLoading) return;
+  leaderboardLoading = true;
+  try {
+    const { data } = await sb
+      .from('scores')
+      .select('name, score')
+      .order('score', { ascending: false })
+      .limit(10);
+    if (data) leaderboard = data;
+  } catch (e) {
+    console.warn('Supabase fetch error:', e);
+  } finally {
+    leaderboardLoading = false;
+  }
+}
+
+// ================================================================
+//  Input handling
+// ================================================================
+function handleTap(clientX, clientY) {
+  ensureAudio(); // unlock audio context on first tap
+
+  const rect = canvas.getBoundingClientRect();
+  const lx   = (clientX - rect.left)  / canvasScale;
+  const ly   = (clientY - rect.top)   / canvasScale;
+
+  if (gameState === 'start') {
+    startGame();
+    return;
+  }
+
+  if (gameState === 'playing') {
+    if (bear.phase === 'spinning') releaseBear();
+    return;
+  }
+
+  if (gameState === 'gameover' && tryAgainBtnBounds) {
+    const b = tryAgainBtnBounds;
+    if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) {
+      hideNameInput();
+      startGame();
+    }
+  }
+}
+
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  // Ignore taps on the HTML name input area
+  if (e.target !== canvas) return;
+  handleTap(e.clientX, e.clientY);
+}, { passive: false });
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    handleTap(window.innerWidth / 2, window.innerHeight / 2);
+  }
+});
+
+// ================================================================
+//  Game lifecycle
+// ================================================================
+function startGame() {
+  gameState            = 'playing';
+  score                = 0;
+  comboCount           = 0;
+  comboMult            = 1;
+  particles            = [];
+  babyEmotion          = 'waiting';
+  babyTimer            = 0;
+  flashAlpha           = 0;
+  pendingGameOver      = false;
+  pendingGameOverTimer = 0;
+  scoreSubmitted       = false;
+  tryAgainBtnBounds    = null;
+  bear                 = createBear();
+}
+
+function endGame() {
+  gameState = 'gameover';
+  scoreSubmitted = false;
+  showNameInput();
+  fetchLeaderboard();
+}
+
+// ================================================================
+//  Update loop
+// ================================================================
+function update() {
+  animTick++;
+
+  if (gameState === 'start') {
+    updateParticles();
+    return;
+  }
+
+  if (gameState === 'playing') {
+    updateBear();
+    updateParticles();
+
+    if (flashAlpha > 0) flashAlpha -= 0.022;
+
+    if (babyTimer > 0) {
+      babyTimer--;
+      if (babyTimer === 0) {
+        if (babyEmotion === 'happy') {
+          // Next bear
+          bear = createBear();
+        }
+        babyEmotion = 'waiting';
+      }
+    }
+
+    if (pendingGameOver) {
+      pendingGameOverTimer--;
+      if (pendingGameOverTimer <= 0 || bear.phase === 'offscreen') {
+        pendingGameOver = false;
+        endGame();
+      }
+    }
+    return;
+  }
+
+  if (gameState === 'gameover') {
+    updateParticles();
+    if (flashAlpha > 0) flashAlpha -= 0.022;
+  }
+}
+
+// ================================================================
+//  Draw loop
+// ================================================================
+function draw() {
+  ctx.clearRect(0, 0, LOGI_W, LOGI_H);
+  ctx.textBaseline = 'alphabetic';
+
+  if (gameState === 'start') {
+    drawStartScreen();
+    drawParticles();
+    return;
+  }
+
+  if (gameState === 'playing') {
+    drawBackground();
+    drawBabyBody(babyEmotion);
+    if (bear.phase !== 'offscreen') {
+      drawBear(bear.x, bear.y, bear.angle);
+    }
+    drawBabyArms(babyEmotion);
+    drawParticles();
+    drawFlash();
+    drawHUD();
+    return;
+  }
+
+  if (gameState === 'gameover') {
+    drawBackground();
+    drawBabyBody(babyEmotion);
+    drawBabyArms(babyEmotion);
+    drawParticles();
+    drawFlash();
+    drawGameOverScreen();
+    return;
+  }
+}
+
+// ================================================================
+//  Main loop
+// ================================================================
+function loop() {
+  try {
+    update();
+    draw();
+  } catch (e) {
+    console.error('Teddy Drop error:', e);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ================================================================
+//  Init
+// ================================================================
+loadAssets(() => loop());
+</script>
+</body>
+</html>
