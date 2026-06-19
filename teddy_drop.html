@@ -176,6 +176,14 @@ canvas {
     <button id="goTryAgainBtn" class="game-btn">Try Again?</button>
   </div>
 
+  <!-- View High Scores HTML button (start screen) -->
+  <button id="viewScoresBtn" style="display:none;position:fixed;z-index:15;
+    background:#fff;color:#f48fb1;border:2.5px solid #f48fb1;border-radius:8px;
+    font-family:Daydream,Chewy,Georgia,sans-serif;font-size:9px;font-weight:bold;
+    padding:0;cursor:pointer;letter-spacing:0.02em;">
+    View High Scores
+  </button>
+
   <!-- High Scores modal (start screen) -->
   <div id="highScoresModal">
     <div id="highScoresCard">
@@ -261,8 +269,28 @@ const goTryAgainBtn     = document.getElementById('goTryAgainBtn');
 const highScoresModal   = document.getElementById('highScoresModal');
 const highScoresList    = document.getElementById('highScoresList');
 const closeScoresBtn    = document.getElementById('closeScoresBtn');
+const viewScoresBtn     = document.getElementById('viewScoresBtn');
 
 let viewScoresBtnBounds = null;
+
+function positionViewScoresBtn() {
+  if (!viewScoresBtn) return;
+  const rect = canvas.getBoundingClientRect();
+  const tapY  = (personalBest > 0 ? 354 : 320) * canvasScale;
+  const vsY   = tapY + 52 * canvasScale;
+  const btnW  = 160 * canvasScale;
+  const btnH  = 34 * canvasScale;
+  viewScoresBtn.style.width  = btnW + 'px';
+  viewScoresBtn.style.height = btnH + 'px';
+  viewScoresBtn.style.top    = (rect.top + vsY) + 'px';
+  viewScoresBtn.style.left   = (rect.left + rect.width / 2 - btnW / 2) + 'px';
+  viewScoresBtn.style.fontSize = Math.max(8, 9 * canvasScale) + 'px';
+}
+
+viewScoresBtn.addEventListener('click', () => {
+  updateLeaderboardHTML();
+  highScoresModal.style.display = 'flex';
+});
 
 function resizeCanvas() {
   const sw = window.innerWidth  / LOGI_W;
@@ -273,6 +301,7 @@ function resizeCanvas() {
   canvas.style.width  = (LOGI_W * canvasScale) + 'px';
   canvas.style.height = (LOGI_H * canvasScale) + 'px';
   positionGameOverOverlay();
+  positionViewScoresBtn();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -880,20 +909,10 @@ function drawStartScreen() {
   ctx.textBaseline = 'middle';
   ctx.fillText('Tap to Begin!', cx, tapY + 22);
 
-  // View High Scores button (inverted: white fill, pink border + text)
-  const vsY = tapY + 52;
-  ctx.fillStyle = '#ffffff';
-  rrect(cx - 80, vsY, 160, 34, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#f48fb1';
-  ctx.lineWidth   = 2;
-  rrect(cx - 80, vsY, 160, 34, 8);
-  ctx.stroke();
-  ctx.fillStyle    = '#f48fb1';
-  ctx.font         = '9px Daydream, Chewy, Georgia, sans-serif';
-  ctx.fillText('View High Scores', cx, vsY + 17);
   ctx.textBaseline = 'alphabetic';
-  viewScoresBtnBounds = { x: cx - 80, y: vsY, w: 160, h: 34 };
+  // View High Scores is an HTML button — position it now
+  viewScoresBtn.style.display = 'block';
+  positionViewScoresBtn();
 }
 
 // ================================================================
@@ -1078,14 +1097,6 @@ function handleTap(clientX, clientY) {
   const ly   = (clientY - rect.top)   / canvasScale;
 
   if (gameState === 'start') {
-    if (viewScoresBtnBounds) {
-      const b = viewScoresBtnBounds;
-      if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) {
-        updateLeaderboardHTML();
-        highScoresModal.style.display = 'flex';
-        return;
-      }
-    }
     startGame();
     return;
   }
@@ -1114,6 +1125,7 @@ document.addEventListener('keydown', e => {
 //  Game lifecycle
 // ================================================================
 function startGame() {
+  viewScoresBtn.style.display = 'none';
   gameState            = 'playing';
   score                = 0;
   comboCount           = 0;
