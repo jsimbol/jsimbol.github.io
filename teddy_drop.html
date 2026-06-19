@@ -923,37 +923,40 @@ function drawInstructionsScreen() {
   ctx.fillRect(0, 0, LOGI_W, LOGI_H);
 
   const cx = LOGI_W / 2;
-  ctx.textAlign = 'center';
 
   // Title
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('How to Play', cx, 44, 4);
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('How to Play', cx, 46, 4);
 
-  // Helper: draw a row with icon on the left and wrapped text on the right
-  function instrRow(drawIcon, lines, rowY) {
-    const iconX  = 54;
-    const textX  = 104;
-    const textW  = LOGI_W - textX - 14;
-    ctx.save();
-    drawIcon(iconX, rowY);
+  // Row: icon centered at (iconCX, rowCY), text lines centered at same rowCY
+  const iconCX  = 54;
+  const textX   = 108;
+  const lineH   = 17;
+
+  function instrRow(drawIconFn, lines, rowCY) {
+    // icon
+    drawIconFn(iconCX, rowCY);
+    // text — vertically center the block around rowCY
+    const totalH = (lines.length - 1) * lineH;
+    let ty = rowCY - totalH / 2;
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle    = '#880e4f';
     ctx.font         = '10.5px Daydream, Chewy, Georgia, sans-serif';
-    let ty = rowY - 4;
     for (const line of lines) {
-      outlineText(line, textX, ty, 2.5, '#880e4f', 'rgba(252,228,236,0.5)');
-      ty += 18;
+      ctx.fillText(line, textX, ty);
+      ty += lineH;
     }
-    ctx.restore();
   }
 
-  // Row 1 — stationary bear
+  // Row 1 — stationary bear (drawBear centers on x,y)
   instrRow(
-    (x, y) => { drawBear(x, y - 8, 0, 0.52); },
-    ['Tap when Teddy is', 'straight up and above', 'Baby Girl.'],
-    118
+    (x, y) => drawBear(x, y, 0, 0.52),
+    ['Tap when Teddy is', 'straight up and directly', 'above Baby Girl.'],
+    130
   );
 
   // Row 2 — happy baby
@@ -961,11 +964,11 @@ function drawInstructionsScreen() {
     (x, y) => {
       const img = ASSETS.happy;
       if (!imgReady(img)) return;
-      const ih = 72; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
-      ctx.drawImage(img, x - iw / 2, y - ih + 10, iw, ih);
+      const ih = 82; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
+      ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
     },
     ['Try to make Teddy fall', 'upright in front of', 'Baby Girl!'],
-    248
+    262
   );
 
   // Row 3 — surprised baby
@@ -973,22 +976,22 @@ function drawInstructionsScreen() {
     (x, y) => {
       const img = ASSETS.surprised;
       if (!imgReady(img)) return;
-      const ih = 72; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
-      ctx.drawImage(img, x - iw / 2, y - ih + 10, iw, ih);
+      const ih = 82; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
+      ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
     },
-    ["If Teddy isn't straight", 'or centred, they\'ll', 'bounce away!'],
-    368
+    ["If Teddy isn't straight", "or centred, they'll", 'bounce away!'],
+    394
   );
 
-  // Bottom tip text
+  // Bottom tip
   ctx.textAlign    = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle    = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = '#880e4f';
   ctx.font         = '10px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('Catch Teddy as many times in a row!', cx, 454, 3);
+  ctx.fillText('Catch Teddy as many times in a row!', cx, 490);
 
   // Start Game button
-  const btnY = 478;
+  const btnY = 512;
   ctx.fillStyle = '#f48fb1';
   rrect(cx - 100, btnY, 200, 46, 8);
   ctx.fill();
