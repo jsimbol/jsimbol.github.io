@@ -915,6 +915,95 @@ function drawStartScreen() {
 }
 
 // ================================================================
+//  Draw: Instructions Screen
+// ================================================================
+function drawInstructionsScreen() {
+  drawBackground();
+  ctx.fillStyle = 'rgba(252,228,236,0.82)';
+  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
+
+  const cx = LOGI_W / 2;
+  ctx.textAlign = 'center';
+
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('How to Play', cx, 44, 4);
+
+  // Helper: draw a row with icon on the left and wrapped text on the right
+  function instrRow(drawIcon, lines, rowY) {
+    const iconX  = 54;
+    const textX  = 104;
+    const textW  = LOGI_W - textX - 14;
+    ctx.save();
+    drawIcon(iconX, rowY);
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = '#880e4f';
+    ctx.font         = '10.5px Daydream, Chewy, Georgia, sans-serif';
+    let ty = rowY - 4;
+    for (const line of lines) {
+      outlineText(line, textX, ty, 2.5, '#880e4f', 'rgba(252,228,236,0.5)');
+      ty += 18;
+    }
+    ctx.restore();
+  }
+
+  // Row 1 — stationary bear
+  instrRow(
+    (x, y) => { drawBear(x, y - 8, 0, 0.52); },
+    ['Tap when Teddy is', 'straight up and above', 'Baby Girl.'],
+    118
+  );
+
+  // Row 2 — happy baby
+  instrRow(
+    (x, y) => {
+      const img = ASSETS.happy;
+      if (!imgReady(img)) return;
+      const ih = 72; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
+      ctx.drawImage(img, x - iw / 2, y - ih + 10, iw, ih);
+    },
+    ['Try to make Teddy fall', 'upright in front of', 'Baby Girl!'],
+    248
+  );
+
+  // Row 3 — surprised baby
+  instrRow(
+    (x, y) => {
+      const img = ASSETS.surprised;
+      if (!imgReady(img)) return;
+      const ih = 72; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
+      ctx.drawImage(img, x - iw / 2, y - ih + 10, iw, ih);
+    },
+    ["If Teddy isn't straight", 'or centred, they\'ll', 'bounce away!'],
+    368
+  );
+
+  // Bottom tip text
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = '10px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('Catch Teddy as many times in a row!', cx, 454, 3);
+
+  // Start Game button
+  const btnY = 478;
+  ctx.fillStyle = '#f48fb1';
+  rrect(cx - 100, btnY, 200, 46, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#fce4ec';
+  ctx.lineWidth   = 2.5;
+  rrect(cx - 100, btnY, 200, 46, 8);
+  ctx.stroke();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign    = 'center';
+  outlineText('Start Game!', cx, btnY + 23, 4);
+}
+
+// ================================================================
 //  Draw: Game Over Screen
 // ================================================================
 function drawGameOverScreen() {
@@ -1096,6 +1185,12 @@ function handleTap(clientX, clientY) {
   const ly   = (clientY - rect.top)   / canvasScale;
 
   if (gameState === 'start') {
+    viewScoresBtn.style.display = 'none';
+    gameState = 'instructions';
+    return;
+  }
+
+  if (gameState === 'instructions') {
     startGame();
     return;
   }
@@ -1154,7 +1249,7 @@ function endGame() {
 function update() {
   animTick++;
 
-  if (gameState === 'start') {
+  if (gameState === 'start' || gameState === 'instructions') {
     updateParticles();
     return;
   }
@@ -1202,6 +1297,11 @@ function draw() {
   if (gameState === 'start') {
     drawStartScreen();
     drawParticles();
+    return;
+  }
+
+  if (gameState === 'instructions') {
+    drawInstructionsScreen();
     return;
   }
 
