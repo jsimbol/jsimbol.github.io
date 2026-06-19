@@ -38,54 +38,151 @@ canvas {
   touch-action: none;
   cursor: pointer;
 }
-#nameInputWrap {
+/* ── Game Over HTML overlay ───────────────────────────── */
+#gameOverOverlay {
   position: fixed;
   display: none;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 20;
-  pointer-events: auto;
+  padding: 10px 12px 12px;
+  overflow: hidden;
 }
-#nameInputWrap input {
-  font-size: 17px;
-  padding: 10px 18px;
-  border-radius: 22px;
+#goNameSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+#gameOverOverlay input {
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
   border: 2.5px solid #f48fb1;
-  background: rgba(255,255,255,0.95);
+  background: #fff;
   text-align: center;
   color: #5d4037;
   outline: none;
-  width: 210px;
+  width: 200px;
   font-family: Daydream, Chewy, Georgia, sans-serif;
-  box-shadow: 0 2px 12px rgba(244,143,177,0.25);
 }
-#nameInputWrap input::placeholder { color: #f8bbd0; }
-#nameInputWrap button {
-  font-size: 16px;
-  padding: 10px 30px;
-  border-radius: 22px;
-  border: none;
-  background: #f48fb1;
-  color: white;
-  cursor: pointer;
+#gameOverOverlay input::placeholder { color: #f8bbd0; }
+#goScoresList {
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  border: 2px solid #f48fb1;
+  border-radius: 8px;
+  min-height: 0;
+}
+#goScoresList::-webkit-scrollbar { width: 6px; }
+#goScoresList::-webkit-scrollbar-thumb { background: #f48fb1; border-radius: 3px; }
+.go-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-size: 11px;
+  color: #880e4f;
+  border-bottom: 1px solid #fce4ec;
+}
+.go-row:last-child { border-bottom: none; }
+.go-row.gold { color: #b8860b; font-weight: bold; }
+.go-empty {
+  text-align: center;
+  padding: 12px;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-size: 11px;
+  color: #f48fb1;
+}
+/* ── Shared button style ──────────────────────────────── */
+.game-btn {
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-size: 13px;
   font-weight: bold;
+  padding: 11px 0;
+  width: 180px;
+  border-radius: 8px;
+  border: 2.5px solid #fce4ec;
+  background: #f48fb1;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.game-btn:active { filter: brightness(0.92); }
+/* ── High Scores Modal (start screen) ────────────────── */
+#highScoresModal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(252,228,236,0.92);
+  z-index: 30;
+}
+#highScoresCard {
+  background: #fff;
+  border: 2.5px solid #f48fb1;
+  border-radius: 8px;
+  width: min(300px, 86vw);
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 10px;
+}
+#highScoresHeading {
   font-family: Daydream, Chewy, Georgia, sans-serif;
-  box-shadow: 0 3px 12px rgba(244,143,177,0.5);
-  transition: transform 0.1s, box-shadow 0.1s;
+  font-size: 15px;
+  font-weight: bold;
+  color: #880e4f;
+  text-align: center;
 }
-#nameInputWrap button:active {
-  transform: scale(0.94);
-  box-shadow: 0 1px 6px rgba(244,143,177,0.4);
+#highScoresList {
+  overflow-y: auto;
+  flex: 1;
+  border: 1.5px solid #fce4ec;
+  border-radius: 6px;
 }
+#highScoresList::-webkit-scrollbar { width: 6px; }
+#highScoresList::-webkit-scrollbar-thumb { background: #f48fb1; border-radius: 3px; }
+.hs-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-size: 11px;
+  color: #880e4f;
+  border-bottom: 1px solid #fce4ec;
+}
+.hs-row:last-child { border-bottom: none; }
+.hs-row.gold { color: #b8860b; font-weight: bold; }
 </style>
 </head>
 <body>
 <div id="wrapper">
   <canvas id="gameCanvas"></canvas>
-  <div id="nameInputWrap">
-    <input type="text" id="playerNameInput" placeholder="Your name..." maxlength="20" autocomplete="off">
-    <button id="submitScoreBtn">Submit to Leaderboard</button>
+
+  <!-- Game Over overlay: name submit + scrollable leaderboard + try again -->
+  <div id="gameOverOverlay">
+    <div id="goNameSection">
+      <input type="text" id="playerNameInput" placeholder="Your name..." maxlength="20" autocomplete="off">
+      <button id="submitScoreBtn" class="game-btn">Submit to Leaderboard</button>
+    </div>
+    <div id="goScoresList"></div>
+    <button id="goTryAgainBtn" class="game-btn">Try Again?</button>
+  </div>
+
+  <!-- High Scores modal (start screen) -->
+  <div id="highScoresModal">
+    <div id="highScoresCard">
+      <div id="highScoresHeading">Top Scores</div>
+      <div id="highScoresList"></div>
+      <button id="closeScoresBtn" class="game-btn">Close</button>
+    </div>
   </div>
 </div>
 
@@ -155,9 +252,17 @@ const LOGI_H  = 700;   // logical canvas height
 
 let canvasScale = 1;
 
-const nameInputWrap = document.getElementById('nameInputWrap');
-const playerNameEl  = document.getElementById('playerNameInput');
-const submitBtn     = document.getElementById('submitScoreBtn');
+const playerNameEl      = document.getElementById('playerNameInput');
+const submitBtn         = document.getElementById('submitScoreBtn');
+const gameOverOverlay   = document.getElementById('gameOverOverlay');
+const goNameSection     = document.getElementById('goNameSection');
+const goScoresList      = document.getElementById('goScoresList');
+const goTryAgainBtn     = document.getElementById('goTryAgainBtn');
+const highScoresModal   = document.getElementById('highScoresModal');
+const highScoresList    = document.getElementById('highScoresList');
+const closeScoresBtn    = document.getElementById('closeScoresBtn');
+
+let viewScoresBtnBounds = null;
 
 function resizeCanvas() {
   const sw = window.innerWidth  / LOGI_W;
@@ -167,7 +272,7 @@ function resizeCanvas() {
   canvas.height = LOGI_H;
   canvas.style.width  = (LOGI_W * canvasScale) + 'px';
   canvas.style.height = (LOGI_H * canvasScale) + 'px';
-  positionNameInput();
+  positionGameOverOverlay();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -761,32 +866,34 @@ function drawStartScreen() {
     outlineText(`${personalBest}    Catches`, cx, 336, 3);
   }
 
-  // Leaderboard preview
-  if (SUPABASE_READY) {
-    const lbY = personalBest > 0 ? 348 : 318;
-    if (leaderboard.length > 0) {
-      drawLeaderboardBox(44, lbY, LOGI_W - 88, 5);
-    } else {
-      ctx.fillStyle = '#ffffff';
-      ctx.font      = '11px Daydream, Chewy, Georgia, sans-serif';
-      outlineText('Loading leaderboard…', cx, lbY + 18, 3);
-    }
-  }
-
-  // Tap-to-begin button — sits in gap between high score text and baby (y≈350–490)
-  const tapBtnY = 390;
+  // Tap to Begin button
+  const tapY = personalBest > 0 ? 354 : 320;
   ctx.fillStyle = '#f48fb1';
-  rrect(cx - 95, tapBtnY, 190, 46, 8);
+  rrect(cx - 90, tapY, 180, 44, 8);
   ctx.fill();
   ctx.strokeStyle = '#fce4ec';
   ctx.lineWidth   = 2.5;
-  rrect(cx - 95, tapBtnY, 190, 46, 8);
+  rrect(cx - 90, tapY, 180, 44, 8);
   ctx.stroke();
   ctx.fillStyle    = '#ffffff';
   ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Tap to Begin!', cx, tapBtnY + 23);
+  ctx.fillText('Tap to Begin!', cx, tapY + 22);
+
+  // View High Scores button
+  const vsY = tapY + 52;
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  rrect(cx - 80, vsY, 160, 34, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#fce4ec';
+  ctx.lineWidth   = 2;
+  rrect(cx - 80, vsY, 160, 34, 8);
+  ctx.stroke();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = '11px Daydream, Chewy, Georgia, sans-serif';
+  ctx.fillText('View High Scores', cx, vsY + 17);
   ctx.textBaseline = 'alphabetic';
+  viewScoresBtnBounds = { x: cx - 80, y: vsY, w: 160, h: 34 };
 }
 
 // ================================================================
@@ -795,7 +902,6 @@ function drawStartScreen() {
 function drawGameOverScreen() {
   drawBackground();
 
-  // Light pink tint
   ctx.fillStyle = 'rgba(252,228,236,0.78)';
   ctx.fillRect(0, 0, LOGI_W, LOGI_H);
 
@@ -809,49 +915,13 @@ function drawGameOverScreen() {
   outlineText('You caught', cx, 66, 5);
   outlineText(`${score} Bear${score !== 1 ? 's' : ''}!`, cx, 92, 5);
 
-  // Personal best — two lines with extra space above
-  ctx.font = '14px Daydream, Chewy, Georgia, sans-serif';
-  if (score > 0 && score >= personalBest) {
-    ctx.fillStyle = '#ffe082';
-    outlineText('High Score:', cx, 122, 4);
-    outlineText(`${personalBest}    Catches`, cx, 142, 4);
-  } else {
-    ctx.fillStyle = '#ffffff';
-    outlineText('High Score:', cx, 122, 4);
-    outlineText(`${personalBest}    Catches`, cx, 142, 4);
-  }
-
-  // Leaderboard section
-  if (SUPABASE_READY) {
-    if (leaderboard.length > 0) {
-      const lbTop = scoreSubmitted ? 160 : 240;
-      drawLeaderboardBox(24, lbTop, LOGI_W - 48, 8);
-    } else {
-      ctx.fillStyle = '#ffffff';
-      ctx.font      = '11px Daydream, Chewy, Georgia, sans-serif';
-      outlineText('Loading leaderboard…', cx, 168, 3);
-    }
-  }
-
-  // Try Again button
-  const btnW = 180;
-  const btnH = 46;
-  const btnX = cx - btnW / 2;
-  const btnY = LOGI_H - 90;
-  ctx.fillStyle = '#f48fb1';
-  rrect(btnX, btnY, btnW, btnH, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#fce4ec';
-  ctx.lineWidth   = 2.5;
-  rrect(btnX, btnY, btnW, btnH, 8);
-  ctx.stroke();
-  ctx.fillStyle    = C.white;
-  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Try Again?', cx, btnY + btnH / 2);
-  ctx.textBaseline = 'alphabetic';
-
-  tryAgainBtnBounds = { x: btnX, y: btnY, w: btnW, h: btnH };
+  // Personal best — two lines
+  const pb = score > 0 && score >= personalBest;
+  ctx.fillStyle = pb ? '#ffe082' : '#ffffff';
+  ctx.font      = '14px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('High Score:', cx, 122, 4);
+  outlineText(`${personalBest}    Catches`, cx, 142, 4);
+  // Everything else (name input, leaderboard, try again) is in HTML overlay
 }
 
 // ================================================================
@@ -895,29 +965,48 @@ function drawLeaderboardBox(x, y, w, maxRows) {
 }
 
 // ================================================================
-//  Name Input (HTML overlay)
+//  Game Over HTML overlay
 // ================================================================
 
-function positionNameInput() {
-  if (!nameInputWrap) return;
-  const rect    = canvas.getBoundingClientRect();
-  const logY    = 222;
-  const screenY = rect.top + logY * canvasScale;
-  nameInputWrap.style.top       = screenY + 'px';
-  nameInputWrap.style.left      = '50%';
-  nameInputWrap.style.transform = 'translateX(-50%)';
+function positionGameOverOverlay() {
+  if (!gameOverOverlay) return;
+  const rect   = canvas.getBoundingClientRect();
+  const topLog = 155; // canvas logical Y where overlay starts (below score text)
+  const topPx  = rect.top  + topLog * canvasScale;
+  const botPx  = rect.bottom - 8;
+  gameOverOverlay.style.top    = topPx + 'px';
+  gameOverOverlay.style.left   = rect.left + 'px';
+  gameOverOverlay.style.width  = rect.width + 'px';
+  gameOverOverlay.style.height = (botPx - topPx) + 'px';
 }
 
-function showNameInput() {
-  if (!SUPABASE_READY) return;
-  nameInputWrap.style.display = 'flex';
-  positionNameInput();
+function showGameOverOverlay() {
+  positionGameOverOverlay();
+  goNameSection.style.display = SUPABASE_READY && !scoreSubmitted ? 'flex' : 'none';
   playerNameEl.value = '';
-  setTimeout(() => playerNameEl.focus(), 80);
+  gameOverOverlay.style.display = 'flex';
+  if (SUPABASE_READY && !scoreSubmitted) setTimeout(() => playerNameEl.focus(), 80);
 }
 
-function hideNameInput() {
-  nameInputWrap.style.display = 'none';
+function hideGameOverOverlay() {
+  gameOverOverlay.style.display = 'none';
+}
+
+function updateLeaderboardHTML() {
+  const makeRows = (containerEl, rowClass) => {
+    if (!containerEl) return;
+    if (!leaderboard.length) {
+      containerEl.innerHTML = `<div class="${rowClass} go-empty">No scores yet!</div>`;
+      return;
+    }
+    containerEl.innerHTML = leaderboard.map((r, i) =>
+      `<div class="${rowClass}${i === 0 ? ' gold' : ''}">
+         <span>${i + 1}. ${r.name}</span><span>${r.score}</span>
+       </div>`
+    ).join('');
+  };
+  makeRows(goScoresList,   'go-row');
+  makeRows(highScoresList, 'hs-row');
 }
 
 submitBtn.addEventListener('click', async () => {
@@ -925,14 +1014,27 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.textContent = 'Submitting…';
   submitBtn.disabled = true;
   await submitScore(name, score);
-  hideNameInput();
   scoreSubmitted = true;
+  goNameSection.style.display = 'none';
   submitBtn.textContent = 'Submit to Leaderboard';
   submitBtn.disabled = false;
 });
 
 playerNameEl.addEventListener('keydown', e => {
   if (e.key === 'Enter') submitBtn.click();
+});
+
+goTryAgainBtn.addEventListener('click', () => {
+  hideGameOverOverlay();
+  startGame();
+});
+
+closeScoresBtn.addEventListener('click', () => {
+  highScoresModal.style.display = 'none';
+});
+
+highScoresModal.addEventListener('click', e => {
+  if (e.target === highScoresModal) highScoresModal.style.display = 'none';
 });
 
 // ================================================================
@@ -956,8 +1058,8 @@ async function fetchLeaderboard() {
       .from('scores')
       .select('name, score')
       .order('score', { ascending: false })
-      .limit(10);
-    if (data) leaderboard = data;
+      .limit(20);
+    if (data) { leaderboard = data; updateLeaderboardHTML(); }
   } catch (e) {
     console.warn('Supabase fetch error:', e);
   } finally {
@@ -985,11 +1087,12 @@ function handleTap(clientX, clientY) {
     return;
   }
 
-  if (gameState === 'gameover' && tryAgainBtnBounds) {
-    const b = tryAgainBtnBounds;
+  if (gameState === 'start' && viewScoresBtnBounds) {
+    const b = viewScoresBtnBounds;
     if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) {
-      hideNameInput();
-      startGame();
+      updateLeaderboardHTML();
+      highScoresModal.style.display = 'flex';
+      return;
     }
   }
 }
@@ -1024,13 +1127,14 @@ function startGame() {
   pendingGameOverTimer = 0;
   scoreSubmitted       = false;
   tryAgainBtnBounds    = null;
+  viewScoresBtnBounds  = null;
   bear                 = createBear();
 }
 
 function endGame() {
   gameState = 'gameover';
   scoreSubmitted = false;
-  showNameInput();
+  showGameOverOverlay();
   fetchLeaderboard();
 }
 
