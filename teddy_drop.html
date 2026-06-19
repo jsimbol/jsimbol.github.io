@@ -880,17 +880,17 @@ function drawStartScreen() {
   ctx.textBaseline = 'middle';
   ctx.fillText('Tap to Begin!', cx, tapY + 22);
 
-  // View High Scores button
+  // View High Scores button (inverted: white fill, pink border + text)
   const vsY = tapY + 52;
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillStyle = '#ffffff';
   rrect(cx - 80, vsY, 160, 34, 8);
   ctx.fill();
-  ctx.strokeStyle = '#fce4ec';
+  ctx.strokeStyle = '#f48fb1';
   ctx.lineWidth   = 2;
   rrect(cx - 80, vsY, 160, 34, 8);
   ctx.stroke();
-  ctx.fillStyle    = '#ffffff';
-  ctx.font         = '11px Daydream, Chewy, Georgia, sans-serif';
+  ctx.fillStyle    = '#f48fb1';
+  ctx.font         = '9px Daydream, Chewy, Georgia, sans-serif';
   ctx.fillText('View High Scores', cx, vsY + 17);
   ctx.textBaseline = 'alphabetic';
   viewScoresBtnBounds = { x: cx - 80, y: vsY, w: 160, h: 34 };
@@ -1078,6 +1078,14 @@ function handleTap(clientX, clientY) {
   const ly   = (clientY - rect.top)   / canvasScale;
 
   if (gameState === 'start') {
+    if (viewScoresBtnBounds) {
+      const b = viewScoresBtnBounds;
+      if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) {
+        updateLeaderboardHTML();
+        highScoresModal.style.display = 'flex';
+        return;
+      }
+    }
     startGame();
     return;
   }
@@ -1085,15 +1093,6 @@ function handleTap(clientX, clientY) {
   if (gameState === 'playing') {
     if (bear.phase === 'spinning') releaseBear();
     return;
-  }
-
-  if (gameState === 'start' && viewScoresBtnBounds) {
-    const b = viewScoresBtnBounds;
-    if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) {
-      updateLeaderboardHTML();
-      highScoresModal.style.display = 'flex';
-      return;
-    }
   }
 }
 
