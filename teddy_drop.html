@@ -1000,7 +1000,7 @@ function positionGameOverOverlay() {
 
 function showGameOverOverlay() {
   positionGameOverOverlay();
-  goNameSection.style.display = SUPABASE_READY && !scoreSubmitted ? 'flex' : 'none';
+  goNameSection.style.display = SUPABASE_READY && !scoreSubmitted && score > 0 ? 'flex' : 'none';
   playerNameEl.value = '';
   gameOverOverlay.style.display = 'flex';
   if (SUPABASE_READY && !scoreSubmitted) setTimeout(() => playerNameEl.focus(), 80);
