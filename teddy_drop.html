@@ -315,6 +315,8 @@ function initSupabase() {
   if (SUPABASE_READY && typeof supabase !== 'undefined') {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     fetchLeaderboard();
+    // Keep the free-tier project alive by pinging every 5 minutes
+    setInterval(fetchLeaderboard, 5 * 60 * 1000);
   }
 }
 
