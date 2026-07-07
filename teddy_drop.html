@@ -880,11 +880,20 @@ function heartPath(cx, cy, s) {
 // ================================================================
 //  Draw: Background
 // ================================================================
+let bgCache = null;
+function cacheBackground() {
+  if (!imgReady(ASSETS.background)) return;
+  bgCache = document.createElement('canvas');
+  bgCache.width  = LOGI_W;
+  bgCache.height = LOGI_H;
+  bgCache.getContext('2d').drawImage(ASSETS.background, 0, 0, LOGI_W, LOGI_H);
+}
+
 function drawBackground() {
-  if (imgReady(ASSETS.background)) {
-    ctx.drawImage(ASSETS.background, 0, 0, LOGI_W, LOGI_H);
+  if (!bgCache) cacheBackground();
+  if (bgCache) {
+    ctx.drawImage(bgCache, 0, 0);
   } else {
-    // Fallback flat fill while assets load
     ctx.fillStyle = '#fce4ec';
     ctx.fillRect(0, 0, LOGI_W, LOGI_H);
   }
