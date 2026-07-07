@@ -1234,6 +1234,7 @@ canvas.addEventListener('pointerdown', e => {
 }, { passive: false });
 
 document.addEventListener('keydown', e => {
+  if (e.target === playerNameEl) return;
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
     handleTap(window.innerWidth / 2, window.innerHeight / 2);
