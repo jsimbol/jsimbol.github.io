@@ -419,6 +419,12 @@ function positionStartButtons() {
 
 function positionViewScoresBtn() { positionStartButtons(); }
 
+function showStartScreen() {
+  startTitle.style.display    = 'block';
+  letsPlayBtn.style.display   = 'block';
+  viewScoresBtn.style.display = 'block';
+}
+
 function positionInstructionsOverlay() {
   if (!instructionsOverlay) return;
   const rect = canvas.getBoundingClientRect();
@@ -488,6 +494,7 @@ function resizeCanvas() {
   canvas.style.height = (LOGI_H * canvasScale) + 'px';
   positionGameOverOverlay();
   positionInstructionsOverlay();
+  positionStartButtons();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -1066,11 +1073,6 @@ function drawStartScreen() {
   }
   drawBear(cx, startBabyY + Math.round(BABY_SH * 0.78), 0, 1);
 
-  // Title + buttons are HTML elements — show and position them
-  startTitle.style.display    = 'block';
-  letsPlayBtn.style.display   = 'block';
-  viewScoresBtn.style.display = 'block';
-  positionStartButtons();
 }
 
 // ================================================================
@@ -1417,7 +1419,7 @@ function loop() {
 // ================================================================
 //  Init
 // ================================================================
-loadAssets(() => loop());
+loadAssets(() => { showStartScreen(); loop(); });
 </script>
 </body>
 </html>
