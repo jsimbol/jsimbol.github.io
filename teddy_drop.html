@@ -166,6 +166,10 @@ canvas {
   text-shadow: -3px -3px 0 #c2185b, 3px -3px 0 #c2185b, -3px 3px 0 #c2185b, 3px 3px 0 #c2185b;
 }
 /* ── Start screen title ──────────────────────────────── */
+@keyframes titlePulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
 #startTitle {
   display: none;
   position: fixed;
@@ -175,6 +179,7 @@ canvas {
   font-family: Daydream, Chewy, Georgia, sans-serif;
   font-weight: bold;
   width: 0; /* sized by JS */
+  animation: titlePulse 2s ease-in-out infinite;
 }
 /* ── Instructions overlay ────────────────────────────── */
 #instructionsOverlay {
