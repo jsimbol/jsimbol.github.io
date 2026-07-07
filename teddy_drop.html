@@ -160,11 +160,102 @@ canvas {
 }
 .hs-row:last-child { border-bottom: none; }
 .hs-row.gold { color: #b8860b; font-weight: bold; }
+/* ── Shared outlined text shadow ─────────────────────── */
+.outlined {
+  color: #fff;
+  text-shadow: -3px -3px 0 #1a0800, 3px -3px 0 #1a0800, -3px 3px 0 #1a0800, 3px 3px 0 #1a0800;
+}
+/* ── Start screen title ──────────────────────────────── */
+#startTitle {
+  display: none;
+  position: fixed;
+  z-index: 12;
+  text-align: center;
+  pointer-events: none;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-weight: bold;
+  width: 0; /* sized by JS */
+}
+/* ── Instructions overlay ────────────────────────────── */
+#instructionsOverlay {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 14px 16px;
+  background: rgba(252,228,236,0.93);
+  overflow-y: auto;
+  gap: 6px;
+  box-sizing: border-box;
+}
+#instrTitle {
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-weight: bold;
+  text-align: center;
+}
+.instr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.instr-img { object-fit: contain; flex-shrink: 0; }
+.instr-text {
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  color: #f06292;
+  line-height: 1.55;
+}
+#instrTip {
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  color: #f06292;
+  text-align: center;
+  line-height: 1.6;
+}
+/* ── Game over score text ────────────────────────────── */
+#goScoreText {
+  display: none;
+  position: fixed;
+  z-index: 12;
+  text-align: center;
+  pointer-events: none;
+  font-family: Daydream, Chewy, Georgia, sans-serif;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: -3px -3px 0 #1a0800, 3px -3px 0 #1a0800, -3px 3px 0 #1a0800, 3px 3px 0 #1a0800;
+  line-height: 1.4;
+}
 </style>
 </head>
 <body>
 <div id="wrapper">
   <canvas id="gameCanvas"></canvas>
+
+  <!-- Start screen title -->
+  <div id="startTitle" class="outlined">Teddy Drop</div>
+
+  <!-- Instructions overlay -->
+  <div id="instructionsOverlay">
+    <div id="instrTitle" class="outlined">How to Play</div>
+    <div class="instr-row">
+      <img src="teddy.png" class="instr-img">
+      <div class="instr-text">Try to make Teddy fall upright in front of Baby Girl!</div>
+    </div>
+    <div class="instr-row">
+      <img src="happy.png" class="instr-img">
+      <div class="instr-text">Tap the screen to drop Teddy!</div>
+    </div>
+    <div class="instr-row">
+      <img src="surprised.png" class="instr-img">
+      <div class="instr-text">If Teddy isn't straight or centred, they'll bounce away!</div>
+    </div>
+    <div id="instrTip">Try to catch Teddy<br>as many times in a row!</div>
+    <button id="startGameBtn" class="game-btn">Start Game!</button>
+  </div>
+
+  <!-- Game over score text -->
+  <div id="goScoreText"></div>
 
   <!-- Game Over overlay: name submit + scrollable leaderboard + try again -->
   <div id="gameOverOverlay">
@@ -276,9 +367,13 @@ const goScoresList      = document.getElementById('goScoresList');
 const goTryAgainBtn     = document.getElementById('goTryAgainBtn');
 const highScoresModal   = document.getElementById('highScoresModal');
 const highScoresList    = document.getElementById('highScoresList');
-const closeScoresBtn    = document.getElementById('closeScoresBtn');
-const viewScoresBtn     = document.getElementById('viewScoresBtn');
-const letsPlayBtn       = document.getElementById('letsPlayBtn');
+const closeScoresBtn        = document.getElementById('closeScoresBtn');
+const viewScoresBtn         = document.getElementById('viewScoresBtn');
+const letsPlayBtn           = document.getElementById('letsPlayBtn');
+const startTitle            = document.getElementById('startTitle');
+const instructionsOverlay   = document.getElementById('instructionsOverlay');
+const startGameBtn          = document.getElementById('startGameBtn');
+const goScoreText           = document.getElementById('goScoreText');
 
 let viewScoresBtnBounds = null;
 
@@ -292,7 +387,17 @@ function positionStartButtons() {
   const smW   = 160 * canvasScale;
   const smH   = 34 * canvasScale;
   const cx    = rect.left + rect.width / 2;
-  const fs    = Math.max(8, 9 * canvasScale) + 'px';
+
+  // Title
+  const titleSize = Math.round(32 * canvasScale);
+  startTitle.style.fontSize  = titleSize + 'px';
+  startTitle.style.top       = (rect.top + 155 * canvasScale) + 'px';
+  startTitle.style.left      = rect.left + 'px';
+  startTitle.style.width     = rect.width + 'px';
+  startTitle.style.textShadow = `${-Math.round(4*canvasScale)}px ${-Math.round(4*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(4*canvasScale)}px ${-Math.round(4*canvasScale)}px 0 #1a0800,`
+    + ` ${-Math.round(4*canvasScale)}px ${Math.round(4*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(4*canvasScale)}px ${Math.round(4*canvasScale)}px 0 #1a0800`;
 
   letsPlayBtn.style.width    = btnW + 'px';
   letsPlayBtn.style.height   = btnH + 'px';
@@ -304,15 +409,63 @@ function positionStartButtons() {
   viewScoresBtn.style.height   = smH + 'px';
   viewScoresBtn.style.top      = (rect.top + vsY) + 'px';
   viewScoresBtn.style.left     = (cx - smW / 2) + 'px';
-  viewScoresBtn.style.fontSize = fs;
+  viewScoresBtn.style.fontSize = Math.max(8, 9 * canvasScale) + 'px';
 }
 
 function positionViewScoresBtn() { positionStartButtons(); }
 
+function positionInstructionsOverlay() {
+  if (!instructionsOverlay) return;
+  const rect = canvas.getBoundingClientRect();
+  instructionsOverlay.style.top    = rect.top + 'px';
+  instructionsOverlay.style.left   = rect.left + 'px';
+  instructionsOverlay.style.width  = rect.width + 'px';
+  instructionsOverlay.style.height = rect.height + 'px';
+  const imgSize = Math.round(70 * canvasScale) + 'px';
+  instructionsOverlay.querySelectorAll('.instr-img').forEach(img => {
+    img.style.width  = imgSize;
+    img.style.height = imgSize;
+  });
+  const titleSize = Math.round(18 * canvasScale);
+  document.getElementById('instrTitle').style.fontSize = Math.max(12, titleSize) + 'px';
+  document.getElementById('instrTitle').style.textShadow =
+    `${-Math.round(3*canvasScale)}px ${-Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(3*canvasScale)}px ${-Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${-Math.round(3*canvasScale)}px ${Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(3*canvasScale)}px ${Math.round(3*canvasScale)}px 0 #1a0800`;
+  const bodySize = Math.max(9, Math.round(10.5 * canvasScale)) + 'px';
+  instructionsOverlay.querySelectorAll('.instr-text, #instrTip').forEach(el => {
+    el.style.fontSize = bodySize;
+  });
+}
+
+function positionGoScoreText() {
+  if (!goScoreText) return;
+  const rect = canvas.getBoundingClientRect();
+  const fontSize = Math.round(20 * canvasScale);
+  goScoreText.style.fontSize   = Math.max(14, fontSize) + 'px';
+  goScoreText.style.top        = (rect.top + 28 * canvasScale) + 'px';
+  goScoreText.style.left       = rect.left + 'px';
+  goScoreText.style.width      = rect.width + 'px';
+  goScoreText.style.textShadow =
+    `${-Math.round(3*canvasScale)}px ${-Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(3*canvasScale)}px ${-Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${-Math.round(3*canvasScale)}px ${Math.round(3*canvasScale)}px 0 #1a0800,`
+    + ` ${Math.round(3*canvasScale)}px ${Math.round(3*canvasScale)}px 0 #1a0800`;
+}
+
 letsPlayBtn.addEventListener('click', () => {
   letsPlayBtn.style.display   = 'none';
   viewScoresBtn.style.display = 'none';
+  startTitle.style.display    = 'none';
+  positionInstructionsOverlay();
+  instructionsOverlay.style.display = 'flex';
   gameState = 'instructions';
+});
+
+startGameBtn.addEventListener('click', () => {
+  instructionsOverlay.style.display = 'none';
+  startGame();
 });
 
 viewScoresBtn.addEventListener('click', () => {
@@ -329,6 +482,7 @@ function resizeCanvas() {
   canvas.style.width  = (LOGI_W * canvasScale) + 'px';
   canvas.style.height = (LOGI_H * canvasScale) + 'px';
   positionGameOverOverlay();
+  positionInstructionsOverlay();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -898,16 +1052,12 @@ function drawStartScreen() {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  // Title
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('Teddy Drop', cx, 180, 5);
-
   // Happy baby with bear caught in front
   drawBabyBody('happy');
   drawBear(cx, BEAR_CAUGHT_Y, 0, 1);
 
-  // Both buttons are HTML elements — show and position them
+  // Title + buttons are HTML elements — show and position them
+  startTitle.style.display    = 'block';
   letsPlayBtn.style.display   = 'block';
   viewScoresBtn.style.display = 'block';
   positionStartButtons();
@@ -917,93 +1067,7 @@ function drawStartScreen() {
 //  Draw: Instructions Screen
 // ================================================================
 function drawInstructionsScreen() {
-  drawBackground();
-  ctx.fillStyle = 'rgba(252,228,236,0.82)';
-  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
-
-  const cx = LOGI_W / 2;
-
-  // Title
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle    = '#ffffff';
-  ctx.font         = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('How to Play', cx, 46, 4);
-
-  // Row: icon centered at (iconCX, rowCY), text lines centered at same rowCY
-  const iconCX  = 54;
-  const textX   = 108;
-  const lineH   = 17;
-
-  function instrRow(drawIconFn, lines, rowCY) {
-    // icon
-    drawIconFn(iconCX, rowCY);
-    // text — vertically center the block around rowCY
-    const totalH = (lines.length - 1) * lineH;
-    let ty = rowCY - totalH / 2;
-    ctx.textAlign    = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle    = '#f06292';
-    ctx.font         = '10.5px Daydream, Chewy, Georgia, sans-serif';
-    for (const line of lines) {
-      ctx.fillText(line, textX, ty);
-      ty += lineH;
-    }
-  }
-
-  // Row 1 — stationary bear (drawBear centers on x,y)
-  instrRow(
-    (x, y) => drawBear(x, y, 0, 0.52),
-    ['Try to make Teddy fall', 'upright in front of', 'Baby Girl!'],
-    130
-  );
-
-  // Row 2 — happy baby
-  instrRow(
-    (x, y) => {
-      const img = ASSETS.happy;
-      if (!imgReady(img)) return;
-      const ih = 82; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
-      ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
-    },
-    ['Tap the screen', 'to drop Teddy!'],
-    262
-  );
-
-  // Row 3 — surprised baby
-  instrRow(
-    (x, y) => {
-      const img = ASSETS.surprised;
-      if (!imgReady(img)) return;
-      const ih = 82; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
-      ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
-    },
-    ["If Teddy isn't straight", "or centred, they'll", 'bounce away!'],
-    394
-  );
-
-  // Bottom tip
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle    = '#f06292';
-  ctx.font         = '10px Daydream, Chewy, Georgia, sans-serif';
-  ctx.fillText('Try to catch Teddy', cx, 482);
-  ctx.fillText('as many times in a row!', cx, 500);
-
-  // Start Game button
-  const btnY = 512;
-  ctx.fillStyle = '#f48fb1';
-  rrect(cx - 100, btnY, 200, 46, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#fce4ec';
-  ctx.lineWidth   = 2.5;
-  rrect(cx - 100, btnY, 200, 46, 8);
-  ctx.stroke();
-  ctx.fillStyle    = '#ffffff';
-  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign    = 'center';
-  outlineText('Start Game!', cx, btnY + 23, 4);
+  drawBackground(); // HTML overlay handles all text/layout
 }
 
 // ================================================================
@@ -1011,27 +1075,9 @@ function drawInstructionsScreen() {
 // ================================================================
 function drawGameOverScreen() {
   drawBackground();
-
   ctx.fillStyle = 'rgba(252,228,236,0.78)';
   ctx.fillRect(0, 0, LOGI_W, LOGI_H);
-
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'alphabetic';
-  const cx = LOGI_W / 2;
-
-  // Score — two lines
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 20px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('You caught', cx, 66, 5);
-  outlineText(`${score} Bear${score !== 1 ? 's' : ''}!`, cx, 92, 5);
-
-  // Personal best — two lines
-  const pb = score > 0 && score >= personalBest;
-  ctx.fillStyle = pb ? '#ffe082' : '#ffffff';
-  ctx.font      = '14px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('High Score:', cx, 122, 4);
-  outlineText(`${personalBest}    Catches`, cx, 142, 4);
-  // Everything else (name input, leaderboard, try again) is in HTML overlay
+  // Score text and leaderboard are HTML overlays
 }
 
 // ================================================================
@@ -1081,7 +1127,7 @@ function drawLeaderboardBox(x, y, w, maxRows) {
 function positionGameOverOverlay() {
   if (!gameOverOverlay) return;
   const rect   = canvas.getBoundingClientRect();
-  const topLog = 155; // canvas logical Y where overlay starts (below score text)
+  const topLog = 120; // canvas logical Y where overlay starts (score text is now HTML)
   const topPx  = rect.top  + topLog * canvasScale;
   const botPx  = rect.bottom - 8;
   gameOverOverlay.style.top    = topPx + 'px';
@@ -1092,6 +1138,9 @@ function positionGameOverOverlay() {
 
 function showGameOverOverlay() {
   positionGameOverOverlay();
+  positionGoScoreText();
+  goScoreText.innerHTML = `You caught<br>${score} Bear${score !== 1 ? 's' : ''}!`;
+  goScoreText.style.display = 'block';
   goNameSection.style.display = SUPABASE_READY && !scoreSubmitted && score > 0 ? 'flex' : 'none';
   playerNameEl.value = '';
   gameOverOverlay.style.display = 'flex';
@@ -1100,6 +1149,7 @@ function showGameOverOverlay() {
 
 function hideGameOverOverlay() {
   gameOverOverlay.style.display = 'none';
+  goScoreText.style.display = 'none';
 }
 
 function updateLeaderboardHTML() {
@@ -1190,11 +1240,15 @@ function handleTap(clientX, clientY) {
   if (gameState === 'start') {
     letsPlayBtn.style.display   = 'none';
     viewScoresBtn.style.display = 'none';
+    startTitle.style.display    = 'none';
+    positionInstructionsOverlay();
+    instructionsOverlay.style.display = 'flex';
     gameState = 'instructions';
     return;
   }
 
   if (gameState === 'instructions') {
+    instructionsOverlay.style.display = 'none';
     startGame();
     return;
   }
@@ -1223,8 +1277,11 @@ document.addEventListener('keydown', e => {
 //  Game lifecycle
 // ================================================================
 function startGame() {
-  letsPlayBtn.style.display   = 'none';
-  viewScoresBtn.style.display = 'none';
+  letsPlayBtn.style.display         = 'none';
+  viewScoresBtn.style.display       = 'none';
+  startTitle.style.display          = 'none';
+  instructionsOverlay.style.display = 'none';
+  goScoreText.style.display         = 'none';
   gameState            = 'playing';
   score                = 0;
   comboCount           = 0;
