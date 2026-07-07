@@ -176,6 +176,14 @@ canvas {
     <button id="goTryAgainBtn" class="game-btn">Try Again?</button>
   </div>
 
+  <!-- Let's Play HTML button (start screen) -->
+  <button id="letsPlayBtn" style="display:none;position:fixed;z-index:15;
+    background:#f48fb1;color:#fff;border:2.5px solid #fce4ec;border-radius:8px;
+    font-family:Daydream,Chewy,Georgia,sans-serif;font-size:9px;font-weight:bold;
+    padding:0;cursor:pointer;letter-spacing:0.02em;">
+    Let's Play!
+  </button>
+
   <!-- View High Scores HTML button (start screen) -->
   <button id="viewScoresBtn" style="display:none;position:fixed;z-index:15;
     background:#fff;color:#f48fb1;border:2.5px solid #f48fb1;border-radius:8px;
@@ -270,22 +278,42 @@ const highScoresModal   = document.getElementById('highScoresModal');
 const highScoresList    = document.getElementById('highScoresList');
 const closeScoresBtn    = document.getElementById('closeScoresBtn');
 const viewScoresBtn     = document.getElementById('viewScoresBtn');
+const letsPlayBtn       = document.getElementById('letsPlayBtn');
 
 let viewScoresBtnBounds = null;
 
-function positionViewScoresBtn() {
-  if (!viewScoresBtn) return;
-  const rect = canvas.getBoundingClientRect();
+function positionStartButtons() {
+  if (!letsPlayBtn || !viewScoresBtn) return;
+  const rect  = canvas.getBoundingClientRect();
   const tapY  = 290 * canvasScale;
   const vsY   = tapY + 50 * canvasScale;
-  const btnW  = 160 * canvasScale;
-  const btnH  = 34 * canvasScale;
-  viewScoresBtn.style.width  = btnW + 'px';
-  viewScoresBtn.style.height = btnH + 'px';
-  viewScoresBtn.style.top    = (rect.top + vsY) + 'px';
-  viewScoresBtn.style.left   = (rect.left + rect.width / 2 - btnW / 2) + 'px';
-  viewScoresBtn.style.fontSize = Math.max(8, 9 * canvasScale) + 'px';
+  const btnW  = 180 * canvasScale;
+  const btnH  = 44 * canvasScale;
+  const smW   = 160 * canvasScale;
+  const smH   = 34 * canvasScale;
+  const cx    = rect.left + rect.width / 2;
+  const fs    = Math.max(8, 9 * canvasScale) + 'px';
+
+  letsPlayBtn.style.width    = btnW + 'px';
+  letsPlayBtn.style.height   = btnH + 'px';
+  letsPlayBtn.style.top      = (rect.top + tapY) + 'px';
+  letsPlayBtn.style.left     = (cx - btnW / 2) + 'px';
+  letsPlayBtn.style.fontSize = Math.max(9, 11 * canvasScale) + 'px';
+
+  viewScoresBtn.style.width    = smW + 'px';
+  viewScoresBtn.style.height   = smH + 'px';
+  viewScoresBtn.style.top      = (rect.top + vsY) + 'px';
+  viewScoresBtn.style.left     = (cx - smW / 2) + 'px';
+  viewScoresBtn.style.fontSize = fs;
 }
+
+function positionViewScoresBtn() { positionStartButtons(); }
+
+letsPlayBtn.addEventListener('click', () => {
+  letsPlayBtn.style.display   = 'none';
+  viewScoresBtn.style.display = 'none';
+  gameState = 'instructions';
+});
 
 viewScoresBtn.addEventListener('click', () => {
   updateLeaderboardHTML();
@@ -879,24 +907,10 @@ function drawStartScreen() {
   drawBabyBody('happy');
   drawBear(cx, BEAR_CAUGHT_Y, 0, 1);
 
-  // Tap to Begin button
-  const tapY = 290;
-  ctx.fillStyle = '#f48fb1';
-  rrect(cx - 90, tapY, 180, 44, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#fce4ec';
-  ctx.lineWidth   = 2.5;
-  rrect(cx - 90, tapY, 180, 44, 8);
-  ctx.stroke();
-  ctx.fillStyle    = '#ffffff';
-  ctx.font         = 'bold 13px Daydream, Chewy, Georgia, sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Tap to Begin!', cx, tapY + 22);
-
-  ctx.textBaseline = 'alphabetic';
-  // View High Scores is an HTML button — position it now
+  // Both buttons are HTML elements — show and position them
+  letsPlayBtn.style.display   = 'block';
   viewScoresBtn.style.display = 'block';
-  positionViewScoresBtn();
+  positionStartButtons();
 }
 
 // ================================================================
@@ -1174,6 +1188,7 @@ function handleTap(clientX, clientY) {
   const ly   = (clientY - rect.top)   / canvasScale;
 
   if (gameState === 'start') {
+    letsPlayBtn.style.display   = 'none';
     viewScoresBtn.style.display = 'none';
     gameState = 'instructions';
     return;
@@ -1208,6 +1223,7 @@ document.addEventListener('keydown', e => {
 //  Game lifecycle
 // ================================================================
 function startGame() {
+  letsPlayBtn.style.display   = 'none';
   viewScoresBtn.style.display = 'none';
   gameState            = 'playing';
   score                = 0;
