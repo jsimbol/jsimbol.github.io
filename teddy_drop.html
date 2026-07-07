@@ -957,7 +957,7 @@ function drawInstructionsScreen() {
   // Row 1 — stationary bear (drawBear centers on x,y)
   instrRow(
     (x, y) => drawBear(x, y, 0, 0.52),
-    ['Tap when Teddy is', 'straight up and directly', 'above Baby Girl.'],
+    ['Try to make Teddy fall', 'upright in front of', 'Baby Girl!'],
     130
   );
 
@@ -969,7 +969,7 @@ function drawInstructionsScreen() {
       const ih = 82; const iw = Math.round(ih * img.naturalWidth / img.naturalHeight);
       ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
     },
-    ['Try to make Teddy fall', 'upright in front of', 'Baby Girl!'],
+    ['Tap the screen', 'to drop Teddy!'],
     262
   );
 
@@ -990,7 +990,7 @@ function drawInstructionsScreen() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle    = '#f06292';
   ctx.font         = '10px Daydream, Chewy, Georgia, sans-serif';
-  ctx.fillText('Catch Teddy as many times in a row!', cx, 490);
+  ctx.fillText('Try to catch Teddy as many times in a row!', cx, 490);
 
   // Start Game button
   const btnY = 512;
