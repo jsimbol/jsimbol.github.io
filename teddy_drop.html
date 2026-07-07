@@ -380,12 +380,12 @@ let viewScoresBtnBounds = null;
 function positionStartButtons() {
   if (!letsPlayBtn || !viewScoresBtn) return;
   const rect  = canvas.getBoundingClientRect();
-  const tapY  = 290 * canvasScale;
-  const vsY   = tapY + 50 * canvasScale;
-  const btnW  = 180 * canvasScale;
-  const btnH  = 44 * canvasScale;
-  const smW   = 160 * canvasScale;
-  const smH   = 34 * canvasScale;
+  const tapY  = 490 * canvasScale;
+  const vsY   = tapY + 56 * canvasScale;
+  const btnW  = 220 * canvasScale;
+  const btnH  = 54 * canvasScale;
+  const smW   = 180 * canvasScale;
+  const smH   = 38 * canvasScale;
   const cx    = rect.left + rect.width / 2;
 
   // Title
@@ -403,7 +403,7 @@ function positionStartButtons() {
   letsPlayBtn.style.height   = btnH + 'px';
   letsPlayBtn.style.top      = (rect.top + tapY) + 'px';
   letsPlayBtn.style.left     = (cx - btnW / 2) + 'px';
-  letsPlayBtn.style.fontSize = Math.max(9, 11 * canvasScale) + 'px';
+  letsPlayBtn.style.fontSize = Math.max(11, 14 * canvasScale) + 'px';
 
   viewScoresBtn.style.width    = smW + 'px';
   viewScoresBtn.style.height   = smH + 'px';
@@ -1052,9 +1052,14 @@ function drawStartScreen() {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  // Happy baby with bear caught in front
-  drawBabyBody('happy');
-  drawBear(cx, BEAR_CAUGHT_Y, 0, 1);
+  // Happy baby with bear — drawn at custom mid-screen position
+  const startBabyY = 260;
+  const img = ASSETS.happy;
+  if (imgReady(img)) {
+    const sw = Math.round(BABY_SH * img.naturalWidth / img.naturalHeight);
+    ctx.drawImage(img, cx - sw / 2, startBabyY, sw, BABY_SH);
+  }
+  drawBear(cx, startBabyY + Math.round(BABY_SH * 0.78), 0, 1);
 
   // Title + buttons are HTML elements — show and position them
   startTitle.style.display    = 'block';
