@@ -873,14 +873,11 @@ function drawStartScreen() {
   // Title
   ctx.fillStyle = '#ffffff';
   ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('Teddy Drop', cx, 56, 5);
+  outlineText('Teddy Drop', cx, 180, 5);
 
-  // Idle spinning bear
-  const idleAngle = animTick * 0.038;
-  drawBear(cx, 220, idleAngle, 1.15);
-
-  // Baby waiting at bottom
-  drawBabyBody('waiting');
+  // Happy baby with bear caught in front
+  drawBabyBody('happy');
+  drawBear(cx, BEAR_CAUGHT_Y, 0, 1);
 
   // Tap to Begin button
   const tapY = 320;
