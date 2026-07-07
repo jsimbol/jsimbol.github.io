@@ -875,12 +875,6 @@ function drawStartScreen() {
   ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
   outlineText('Teddy Drop', cx, 56, 5);
 
-  // Subtitle — two lines
-  ctx.fillStyle = '#fce4ec';
-  ctx.font      = '13px Daydream, Chewy, Georgia, sans-serif';
-  outlineText('help baby girl catch', cx, 88, 3);
-  outlineText('her teddy bear', cx, 108, 3);
-
   // Idle spinning bear
   const idleAngle = animTick * 0.038;
   drawBear(cx, 220, idleAngle, 1.15);
