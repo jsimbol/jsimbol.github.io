@@ -37,8 +37,6 @@ canvas {
   display: block;
   touch-action: none;
   cursor: pointer;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 /* ── Game Over HTML overlay ───────────────────────────── */
 #gameOverOverlay {
@@ -168,10 +166,6 @@ canvas {
   text-shadow: -3px -3px 0 #c2185b, 3px -3px 0 #c2185b, -3px 3px 0 #c2185b, 3px 3px 0 #c2185b;
 }
 /* ── Start screen title ──────────────────────────────── */
-@keyframes titlePulse {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.06); }
-}
 #startTitle {
   display: none;
   position: fixed;
@@ -181,7 +175,7 @@ canvas {
   font-family: Daydream, Chewy, Georgia, sans-serif;
   font-weight: bold;
   width: 0; /* sized by JS */
-  animation: titlePulse 2s ease-in-out infinite;
+  transform-origin: center center;
 }
 /* ── Instructions overlay ────────────────────────────── */
 #instructionsOverlay {
@@ -1380,6 +1374,8 @@ function draw() {
   ctx.textBaseline = 'alphabetic';
 
   if (gameState === 'start') {
+    const s = 1 + 0.03 * (1 + Math.sin(performance.now() / 318.3)); // ~2s period, 1.0–1.06
+    startTitle.style.transform = `scale(${s.toFixed(4)})`;
     drawStartScreen();
     drawParticles();
     return;
