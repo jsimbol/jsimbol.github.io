@@ -165,17 +165,6 @@ canvas {
   color: #fff;
   text-shadow: -3px -3px 0 #c2185b, 3px -3px 0 #c2185b, -3px 3px 0 #c2185b, 3px 3px 0 #c2185b;
 }
-/* ── Start screen title ──────────────────────────────── */
-#startTitle {
-  display: none;
-  position: fixed;
-  z-index: 12;
-  text-align: center;
-  pointer-events: none;
-  font-family: Daydream, Chewy, Georgia, sans-serif;
-  font-weight: bold;
-  width: 0; /* sized by JS */
-}
 /* ── Instructions overlay ────────────────────────────── */
 #instructionsOverlay {
   display: none;
@@ -232,9 +221,6 @@ canvas {
 <div id="wrapper">
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Start screen title -->
-  <div id="startTitle" class="outlined">Teddy Drop</div>
-
   <!-- Instructions overlay -->
   <div id="instructionsOverlay">
     <div id="instrTitle" class="outlined">How to Play</div>
@@ -266,14 +252,6 @@ canvas {
     <div id="goScoresList"></div>
     <button id="goTryAgainBtn" class="game-btn">Try Again?</button>
   </div>
-
-  <!-- Let's Play HTML button (start screen) -->
-  <button id="letsPlayBtn" style="display:none;position:fixed;z-index:15;
-    background:#f48fb1;color:#fff;border:2.5px solid #fce4ec;border-radius:8px;
-    font-family:Daydream,Chewy,Georgia,sans-serif;font-size:9px;font-weight:bold;
-    padding:0;cursor:pointer;letter-spacing:0.02em;">
-    Start Game
-  </button>
 
   <!-- View High Scores HTML button (start screen) -->
   <button id="viewScoresBtn" style="display:none;position:fixed;z-index:15;
@@ -369,42 +347,19 @@ const highScoresModal   = document.getElementById('highScoresModal');
 const highScoresList    = document.getElementById('highScoresList');
 const closeScoresBtn        = document.getElementById('closeScoresBtn');
 const viewScoresBtn         = document.getElementById('viewScoresBtn');
-const letsPlayBtn           = document.getElementById('letsPlayBtn');
-const startTitle            = document.getElementById('startTitle');
 const instructionsOverlay   = document.getElementById('instructionsOverlay');
 const startGameBtn          = document.getElementById('startGameBtn');
 const goScoreText           = document.getElementById('goScoreText');
 
 let viewScoresBtnBounds = null;
 
-function positionStartButtons() {
-  if (!letsPlayBtn || !viewScoresBtn) return;
-  const rect  = canvas.getBoundingClientRect();
-  const tapY  = 490 * canvasScale;
-  const vsY   = tapY + 72 * canvasScale;
-  const btnW  = 220 * canvasScale;
-  const btnH  = 54 * canvasScale;
-  const smW   = 180 * canvasScale;
-  const smH   = 38 * canvasScale;
-  const cx    = rect.left + rect.width / 2;
-
-  // Title
-  const titleSize = Math.round(32 * canvasScale);
-  startTitle.style.fontSize  = titleSize + 'px';
-  startTitle.style.top       = (rect.top + 155 * canvasScale) + 'px';
-  startTitle.style.left      = rect.left + 'px';
-  startTitle.style.width     = rect.width + 'px';
-  startTitle.style.textShadow = `${-Math.round(4*canvasScale)}px ${-Math.round(4*canvasScale)}px 0 #c2185b,`
-    + ` ${Math.round(4*canvasScale)}px ${-Math.round(4*canvasScale)}px 0 #c2185b,`
-    + ` ${-Math.round(4*canvasScale)}px ${Math.round(4*canvasScale)}px 0 #c2185b,`
-    + ` ${Math.round(4*canvasScale)}px ${Math.round(4*canvasScale)}px 0 #c2185b`;
-
-  letsPlayBtn.style.width    = btnW + 'px';
-  letsPlayBtn.style.height   = btnH + 'px';
-  letsPlayBtn.style.top      = (rect.top + tapY) + 'px';
-  letsPlayBtn.style.left     = (cx - btnW / 2) + 'px';
-  letsPlayBtn.style.fontSize = Math.max(11, 14 * canvasScale) + 'px';
-
+function positionViewScoresBtn() {
+  if (!viewScoresBtn) return;
+  const rect = canvas.getBoundingClientRect();
+  const vsY  = 562 * canvasScale;
+  const smW  = 180 * canvasScale;
+  const smH  = 38 * canvasScale;
+  const cx   = rect.left + rect.width / 2;
   viewScoresBtn.style.width    = smW + 'px';
   viewScoresBtn.style.height   = smH + 'px';
   viewScoresBtn.style.top      = (rect.top + vsY) + 'px';
@@ -412,11 +367,8 @@ function positionStartButtons() {
   viewScoresBtn.style.fontSize = Math.max(8, 9 * canvasScale) + 'px';
 }
 
-function positionViewScoresBtn() { positionStartButtons(); }
-
 function showStartScreen() {
-  startTitle.style.display    = 'block';
-  letsPlayBtn.style.display   = 'block';
+  positionViewScoresBtn();
   viewScoresBtn.style.display = 'block';
 }
 
@@ -460,15 +412,6 @@ function positionGoScoreText() {
     + ` ${Math.round(3*canvasScale)}px ${Math.round(3*canvasScale)}px 0 #c2185b`;
 }
 
-letsPlayBtn.addEventListener('click', () => {
-  letsPlayBtn.style.display   = 'none';
-  viewScoresBtn.style.display = 'none';
-  startTitle.style.display    = 'none';
-  positionInstructionsOverlay();
-  instructionsOverlay.style.display = 'flex';
-  gameState = 'instructions';
-});
-
 startGameBtn.addEventListener('click', () => {
   instructionsOverlay.style.display = 'none';
   startGame();
@@ -489,7 +432,7 @@ function resizeCanvas() {
   canvas.style.height = (LOGI_H * canvasScale) + 'px';
   positionGameOverOverlay();
   positionInstructionsOverlay();
-  positionStartButtons();
+  positionViewScoresBtn();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -1058,7 +1001,12 @@ function drawStartScreen() {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  // Happy baby with bear — drawn at custom mid-screen position
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
+  outlineText('Teddy Drop', cx, 56, 5);
+
+  // Happy baby with bear
   const startBabyY = 260;
   const img = ASSETS.happy;
   if (imgReady(img)) {
@@ -1067,6 +1015,21 @@ function drawStartScreen() {
   }
   drawBear(cx, startBabyY + Math.round(BABY_SH * 0.78), 0, 1);
 
+  // Start Game button
+  const tapY = 490;
+  ctx.fillStyle = '#f48fb1';
+  rrect(cx - 110, tapY, 220, 54, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#fce4ec';
+  ctx.lineWidth   = 2.5;
+  rrect(cx - 110, tapY, 220, 54, 8);
+  ctx.stroke();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 14px Daydream, Chewy, Georgia, sans-serif';
+  ctx.textBaseline = 'middle';
+  outlineText('Start Game', cx, tapY + 27, 3);
+
+  ctx.textBaseline = 'alphabetic';
 }
 
 // ================================================================
@@ -1244,9 +1207,7 @@ function handleTap(clientX, clientY) {
   const ly   = (clientY - rect.top)   / canvasScale;
 
   if (gameState === 'start') {
-    letsPlayBtn.style.display   = 'none';
     viewScoresBtn.style.display = 'none';
-    startTitle.style.display    = 'none';
     positionInstructionsOverlay();
     instructionsOverlay.style.display = 'flex';
     gameState = 'instructions';
@@ -1283,9 +1244,7 @@ document.addEventListener('keydown', e => {
 //  Game lifecycle
 // ================================================================
 function startGame() {
-  letsPlayBtn.style.display         = 'none';
   viewScoresBtn.style.display       = 'none';
-  startTitle.style.display          = 'none';
   instructionsOverlay.style.display = 'none';
   goScoreText.style.display         = 'none';
   gameState            = 'playing';
