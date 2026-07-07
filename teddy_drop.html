@@ -276,7 +276,7 @@ let viewScoresBtnBounds = null;
 function positionViewScoresBtn() {
   if (!viewScoresBtn) return;
   const rect = canvas.getBoundingClientRect();
-  const tapY  = 320 * canvasScale;
+  const tapY  = 290 * canvasScale;
   const vsY   = tapY + 50 * canvasScale;
   const btnW  = 160 * canvasScale;
   const btnH  = 34 * canvasScale;
@@ -870,9 +870,6 @@ function drawStartScreen() {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  ctx.fillStyle = 'rgba(252,228,236,0.82)';
-  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
-
   // Title
   ctx.fillStyle = '#ffffff';
   ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
@@ -883,7 +880,7 @@ function drawStartScreen() {
   drawBear(cx, BEAR_CAUGHT_Y, 0, 1);
 
   // Tap to Begin button
-  const tapY = 320;
+  const tapY = 290;
   ctx.fillStyle = '#f48fb1';
   rrect(cx - 90, tapY, 180, 44, 8);
   ctx.fill();
