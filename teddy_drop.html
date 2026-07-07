@@ -888,16 +888,8 @@ function drawStartScreen() {
   // Baby waiting at bottom
   drawBabyBody('waiting');
 
-  // Personal best — two lines
-  if (personalBest > 0) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font      = '12px Daydream, Chewy, Georgia, sans-serif';
-    outlineText('High Score:', cx, 318, 3);
-    outlineText(`${personalBest}    Catches`, cx, 336, 3);
-  }
-
   // Tap to Begin button
-  const tapY = personalBest > 0 ? 354 : 320;
+  const tapY = 320;
   ctx.fillStyle = '#f48fb1';
   rrect(cx - 90, tapY, 180, 44, 8);
   ctx.fill();
