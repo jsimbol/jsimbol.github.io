@@ -276,8 +276,8 @@ let viewScoresBtnBounds = null;
 function positionViewScoresBtn() {
   if (!viewScoresBtn) return;
   const rect = canvas.getBoundingClientRect();
-  const tapY  = (personalBest > 0 ? 354 : 320) * canvasScale;
-  const vsY   = tapY + 52 * canvasScale;
+  const tapY  = 320 * canvasScale;
+  const vsY   = tapY + 50 * canvasScale;
   const btnW  = 160 * canvasScale;
   const btnH  = 34 * canvasScale;
   viewScoresBtn.style.width  = btnW + 'px';
