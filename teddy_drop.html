@@ -870,6 +870,9 @@ function drawStartScreen() {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
+  ctx.fillStyle = 'rgba(252,228,236,0.82)';
+  ctx.fillRect(0, 0, LOGI_W, LOGI_H);
+
   // Title
   ctx.fillStyle = '#ffffff';
   ctx.font      = 'bold 32px Daydream, Chewy, Georgia, sans-serif';
@@ -973,7 +976,8 @@ function drawInstructionsScreen() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle    = '#f06292';
   ctx.font         = '10px Daydream, Chewy, Georgia, sans-serif';
-  ctx.fillText('Try to catch Teddy as many times in a row!', cx, 490);
+  ctx.fillText('Try to catch Teddy', cx, 482);
+  ctx.fillText('as many times in a row!', cx, 500);
 
   // Start Game button
   const btnY = 512;
