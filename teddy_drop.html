@@ -626,19 +626,19 @@ function releaseBear() {
   bear.spinSpeed = 0;  // freeze rotation at the angle the player chose
 }
 
-function updateBear() {
+function updateBear(dt) {
   if (bear.phase === 'spinning') {
-    bear.angle += bear.spinSpeed;
+    bear.angle += bear.spinSpeed * dt;
     // Lateral sway while spinning — this is what the player times
-    bear.driftPhase += bear.driftFreq;
+    bear.driftPhase += bear.driftFreq * dt;
     bear.x = BEAR_START_X + Math.sin(bear.driftPhase) * bear.driftAmp * 28;
     return;
   }
 
   if (bear.phase === 'falling') {
     // x is frozen at release position — falls straight down
-    bear.vy += GRAVITY;
-    bear.y  += bear.vy;
+    bear.vy += GRAVITY * dt;
+    bear.y  += bear.vy * dt;
 
     if (!bear.catchChecked && bear.y >= CATCH_ZONE_Y) {
       bear.catchChecked = true;
@@ -648,10 +648,10 @@ function updateBear() {
   }
 
   if (bear.phase === 'bouncing') {
-    bear.vy    += GRAVITY;
-    bear.x    += bear.vx;
-    bear.y    += bear.vy;
-    bear.angle += bear.spinSpeed * 2.8;
+    bear.vy    += GRAVITY * dt;
+    bear.x    += bear.vx * dt;
+    bear.y    += bear.vy * dt;
+    bear.angle += bear.spinSpeed * 2.8 * dt;
 
     if (bear.y > LOGI_H + 80 || bear.x < -80 || bear.x > LOGI_W + 80) {
       bear.phase = 'offscreen';
@@ -738,12 +738,12 @@ function spawnHearts(x, y) {
   }
 }
 
-function updateParticles() {
+function updateParticles(dt) {
   for (const p of particles) {
-    p.x  += p.vx;
-    p.y  += p.vy;
-    p.vy += 0.06;
-    p.life--;
+    p.x  += p.vx * dt;
+    p.y  += p.vy * dt;
+    p.vy += 0.06 * dt;
+    p.life -= dt;
   }
   particles = particles.filter(p => p.life > 0);
 }
@@ -988,7 +988,6 @@ function drawFlash() {
   if (flashAlpha <= 0) return;
   ctx.fillStyle = `rgba(255,182,193,${flashAlpha})`;
   ctx.fillRect(0, 0, LOGI_W, LOGI_H);
-  flashAlpha = Math.max(0, flashAlpha - 0.022);
 }
 
 // ================================================================
@@ -1274,25 +1273,25 @@ function endGame() {
 // ================================================================
 //  Update loop
 // ================================================================
-function update() {
-  animTick++;
+function update(dt) {
+  animTick += dt;
 
   if (gameState === 'start' || gameState === 'instructions') {
-    updateParticles();
+    updateParticles(dt);
     return;
   }
 
   if (gameState === 'playing') {
-    updateBear();
-    updateParticles();
+    updateBear(dt);
+    updateParticles(dt);
 
-    if (flashAlpha > 0) flashAlpha -= 0.022;
+    if (flashAlpha > 0) flashAlpha -= 0.022 * dt;
 
     if (babyTimer > 0) {
-      babyTimer--;
-      if (babyTimer === 0) {
+      babyTimer -= dt;
+      if (babyTimer <= 0) {
+        babyTimer = 0;
         if (babyEmotion === 'happy') {
-          // Next bear
           bear = createBear();
         }
         babyEmotion = 'waiting';
@@ -1300,7 +1299,7 @@ function update() {
     }
 
     if (pendingGameOver) {
-      pendingGameOverTimer--;
+      pendingGameOverTimer -= dt;
       if (pendingGameOverTimer <= 0 || bear.phase === 'offscreen') {
         pendingGameOver = false;
         endGame();
@@ -1310,8 +1309,8 @@ function update() {
   }
 
   if (gameState === 'gameover') {
-    updateParticles();
-    if (flashAlpha > 0) flashAlpha -= 0.022;
+    updateParticles(dt);
+    if (flashAlpha > 0) flashAlpha -= 0.022 * dt;
   }
 }
 
@@ -1360,9 +1359,12 @@ function draw() {
 // ================================================================
 //  Main loop
 // ================================================================
-function loop() {
+let _lastTs = null;
+function loop(ts) {
+  const dt = _lastTs === null ? 1 : Math.min((ts - _lastTs) / (1000 / 60), 3);
+  _lastTs = ts;
   try {
-    update();
+    update(dt);
     draw();
   } catch (e) {
     console.error('Teddy Drop error:', e);
